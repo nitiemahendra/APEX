@@ -606,7 +606,19 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
 }
 
 // ── AppHeader ─────────────────────────────────────────────────────────────────
-function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings }) {
+function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings, onGoalSave }) {
+  const [editing, setEditing] = useState(false);
+  const [input, setInput]     = useState("");
+  const inputRef = useRef(null);
+
+  const openEdit = () => { setInput(""); setEditing(true); setTimeout(()=>inputRef.current?.focus(),0); };
+  const commit   = () => {
+    const val = parseFloat(input.replace(/[^0-9.]/g,""));
+    if (val >= 1000) onGoalSave(val);
+    setEditing(false);
+  };
+  const onKey = e => { if(e.key==="Enter") commit(); if(e.key==="Escape") setEditing(false); };
+
   const tabs = [
     {id:"dashboard",label:"Dashboard",icon:<BarChart3 size={12}/>},
     {id:"goals",    label:"Goals",    icon:<Target size={12}/>},
@@ -625,7 +637,19 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings })
           <div style={{width:28,height:28,borderRadius:6,background:"#c9a84c",display:"flex",alignItems:"center",justifyContent:"center"}}><Target size={13} color="#1a1a1a"/></div>
           <div>
             <div style={{fontSize:13,fontWeight:700,letterSpacing:".06em"}}>APEX</div>
-            <div className="ax-dim" style={{fontSize:9}}>{profileName?`${profileName}'s Advisor`:"Investment Advisor"} · {fh(goalAmount)} Goal</div>
+            <div className="ax-dim" style={{fontSize:9,display:"flex",alignItems:"center",gap:4}}>
+              {profileName?`${profileName}'s Advisor`:"Investment Advisor"} ·{" "}
+              {editing ? (
+                <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onBlur={commit} onKeyDown={onKey}
+                  placeholder={fh(goalAmount)}
+                  style={{width:72,fontSize:9,padding:"1px 5px",borderRadius:4,border:"1px solid #c9a84c",outline:"none",background:"#fffbe8",color:"#111827",fontFamily:"inherit"}}/>
+              ) : (
+                <span onClick={openEdit} title="Click to change goal"
+                  style={{color:"#c9a84c",cursor:"pointer",fontWeight:700,borderBottom:"1px dashed #c9a84c80",lineHeight:1.2}}>
+                  {fh(goalAmount)} Goal
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -676,14 +700,16 @@ export default function App() {
   const [parsingFile, setParsingFile] = useState(false);
   const [parsedNote, setParsedNote]   = useState("");
   const [saveMsg, setSaveMsg]   = useState("");
+  const [apiKey, setApiKey]     = useState("");
+  const [apiKeyInput, setApiKeyInput] = useState("");
   const [newEv, setNewEv]       = useState({label:"",year:CUR_YEAR+5,cost:0});
   const fileRef = useRef(null);
 
   // ── Boot ────────────────────────────────────────────────────────────────────
   useEffect(()=>{
     (async()=>{
-      const [e,a,p,g,ins,fi,ga]=await Promise.all([load("apex-entries"),load("apex-advice"),load("apex-profile"),load("apex-goals"),load("apex-insurance"),load("apex-fiplan"),load("apex-goal")]);
-      if(e)setEntries(e); if(a)setAdvice(a); if(p)setProfile(p); if(g)setGoals(g); if(ins)setInsurance(ins); if(fi)setFIPlan(fi); if(ga)setGoalAmount(ga);
+      const [e,a,p,g,ins,fi,ga,ak]=await Promise.all([load("apex-entries"),load("apex-advice"),load("apex-profile"),load("apex-goals"),load("apex-insurance"),load("apex-fiplan"),load("apex-goal"),load("apex-apikey")]);
+      if(e)setEntries(e); if(a)setAdvice(a); if(p)setProfile(p); if(g)setGoals(g); if(ins)setInsurance(ins); if(fi)setFIPlan(fi); if(ga)setGoalAmount(ga); if(ak)setApiKey(ak);
       setBooting(false);
     })();
   },[]);
@@ -765,6 +791,23 @@ export default function App() {
     setGoalAmount(val); await persist("apex-goal", val);
     setGoalEdit(""); flash("Goal updated to " + fmt(val) + "!");
   };
+  const saveApiKey = async () => {
+    const key = apiKeyInput.trim();
+    setApiKey(key); await persist("apex-apikey", key);
+    setApiKeyInput(""); flash("API key saved!");
+  };
+  const apiHeaders = () => ({
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+  });
+
+  const quickSaveGoal = async val => {
+    if (!val || val < 1000) return;
+    setGoalAmount(val); await persist("apex-goal", val);
+    flash("Goal updated to " + fmt(val) + "!");
+  };
 
   const RESET_OPTS = [
     { id:"all",     label:"Reset all data",          sub:"Clears entries, goals, advice, profile, insurance, FI plan, goal amount", danger:true },
@@ -790,22 +833,50 @@ export default function App() {
 
   // ── Statement parser ─────────────────────────────────────────────────────────
   const parseStatement=async file=>{
+    if(!apiKey){ setParsedNote("API key not set. Add your Claude API key in Settings (⚙)."); return; }
     setParsingFile(true); setParsedNote("");
     try {
       const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
       const isPdf=file.type==="application/pdf";
-      const content=[isPdf?{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}}:{type:"image",source:{type:"base64",media_type:file.type,data:b64}},
-        {type:"text",text:"Extract financial data. Return ONLY valid JSON: {salary,totalExpenses,bankBalance,emiTotal,notes}. All numbers in INR (Indian Rupees)."}];
-      const res=await fetch(CLAUDE_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,max_tokens:500,messages:[{role:"user",content}]})});
+      const extractPrompt=`You are a financial data extractor for Indian investors. Analyze this document and extract all financial data you can find.
+Return ONLY valid JSON with these fields (use 0 for fields not found):
+{"salary":0,"totalExpenses":0,"bankBalance":0,"emiTotal":0,"equity":0,"mutualFunds":0,"epf":0,"nps":0,"ppf":0,"fd":0,"sgb":0,"gold":0,"realEstate":0,"netWorth":0,"notes":""}
+Field guide:
+- salary/totalExpenses/bankBalance/emiTotal: from bank statements
+- equity: total value of stocks/shares (CDSL/NSDL demat statements)
+- mutualFunds: total mutual fund NAV value (CAS/MF statements)
+- epf: EPF/PF corpus (EPFO passbook)
+- nps: NPS Tier-1 balance
+- ppf: PPF account balance
+- fd: fixed deposit total
+- sgb: sovereign gold bonds value
+- gold: physical gold / gold ETF
+- realEstate: property valuation if stated
+- netWorth: total portfolio value if a summary page is present
+- notes: ONE sentence: document type + key number found
+All amounts in INR. Be precise with numbers from the document.`;
+      const content=[isPdf?{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}}:{type:"image",source:{type:"base64",media_type:file.type,data:b64}},{type:"text",text:extractPrompt}];
+      const res=await fetch(CLAUDE_API,{method:"POST",headers:apiHeaders(),body:JSON.stringify({model:MODEL,max_tokens:600,messages:[{role:"user",content}]})});
+      if(!res.ok){ const e=await res.json().catch(()=>({})); setParsedNote(`API error ${res.status}: ${e.error?.message||"Check your API key in Settings."}`); setParsingFile(false); return; }
       const data=await res.json();
       const text=data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"{}";
-      const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
-      if(parsed.salary)upd("income","salary",parsed.salary);
-      if(parsed.totalExpenses)upd("expenses","essentials",parsed.totalExpenses);
-      if(parsed.bankBalance)upd(null,"bankBalance",parsed.bankBalance);
-      if(parsed.emiTotal)upd("expenses","emi",parsed.emiTotal);
-      if(parsed.notes)setParsedNote(parsed.notes);
-    } catch { setParsedNote("Could not auto-parse. Please fill manually."); }
+      const parsed=JSON.parse(text.replace(/```json\n?|```/g,"").trim());
+      let filled=[];
+      if(parsed.salary)     { upd("income","salary",parsed.salary);              filled.push("salary"); }
+      if(parsed.totalExpenses){ upd("expenses","essentials",parsed.totalExpenses); filled.push("expenses"); }
+      if(parsed.bankBalance){ upd(null,"bankBalance",parsed.bankBalance);         filled.push("bank balance"); }
+      if(parsed.emiTotal)   { upd("expenses","emi",parsed.emiTotal);              filled.push("EMI"); }
+      if(parsed.equity)     { upd("investments","equity",parsed.equity);           filled.push("equity"); }
+      if(parsed.mutualFunds){ upd("investments","mutualFunds",parsed.mutualFunds); filled.push("mutual funds"); }
+      if(parsed.epf)        { upd("investments","epf",parsed.epf);                filled.push("EPF"); }
+      if(parsed.nps)        { upd("investments","nps",parsed.nps);                filled.push("NPS"); }
+      if(parsed.ppf)        { upd("investments","ppf",parsed.ppf);                filled.push("PPF"); }
+      if(parsed.fd)         { upd("investments","fd",parsed.fd);                  filled.push("FD"); }
+      if(parsed.sgb)        { upd("investments","sgb",parsed.sgb);                filled.push("SGB"); }
+      if(parsed.gold)       { upd("investments","gold",parsed.gold);              filled.push("gold"); }
+      const note=parsed.notes||(filled.length?`Filled: ${filled.join(", ")}. Please verify all values.`:"No financial data found — please fill manually.");
+      setParsedNote(note + (filled.length?` · Auto-filled ${filled.length} field(s).`:""));
+    } catch(err) { setParsedNote(`Parse error: ${err.message||"Unknown error. Please fill manually."}`); }
     setParsingFile(false);
   };
 
@@ -835,7 +906,12 @@ export default function App() {
 
   // ── AI analysis ──────────────────────────────────────────────────────────────
   const runAnalysis=async(type="monthly")=>{
-    if(!entries.length)return; setAnalyzing(true);
+    if(!entries.length)return;
+    if(!apiKey){
+      const rec={id:Date.now(),date:new Date().toLocaleDateString("en-IN",{month:"short",day:"numeric",year:"numeric"}),type,content:"**⚙ API Key Required**\n\nTo use AI Advisor, add your Claude API key in Settings (⚙ icon top-right).\n\nGet a free key at: console.anthropic.com → API Keys",netWorthSnapshot:0};
+      const updated=[rec,...advice].slice(0,12); setAdvice(updated); await persist("apex-advice",updated); return;
+    }
+    setAnalyzing(true);
     const m=calcMetrics(entries, goalAmount), latest=entries[entries.length-1];
     const last3=entries.slice(-3).map(e=>`${e.label}: NW ₹${e.netWorth.toLocaleString("en-IN")}`).join("; ");
     const prompt=`You are APEX, an elite personal financial advisor for an Indian investor. Client goal: ${fmt(goalAmount)} net worth ASAP. All amounts are in Indian Rupees (₹).
@@ -875,7 +951,7 @@ Respond EXACTLY:
 **💡 BOLD MOVE**
 [One high-impact, risk-calibrated recommendation that accelerates BOTH the ${fmt(goalAmount)} goal AND underfunded sub-goals.]`;
     try {
-      const res=await fetch(CLAUDE_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,max_tokens:1200,messages:[{role:"user",content:prompt}]})});
+      const res=await fetch(CLAUDE_API,{method:"POST",headers:apiHeaders(),body:JSON.stringify({model:MODEL,max_tokens:1200,messages:[{role:"user",content:prompt}]})});
       const data=await res.json();
       const content=data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"Analysis unavailable.";
       const rec={id:Date.now(),date:new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),type,content,netWorthSnapshot:m.netWorth};
@@ -900,6 +976,31 @@ Respond EXACTLY:
             <button className="ax-btn" style={{padding:"5px 8px"}} onClick={()=>{setShowSettings(false);setResetTarget(null);}}>
               <XIcon size={13}/>
             </button>
+          </div>
+
+          {/* ── Claude API Key ── */}
+          <div className="settings-section">
+            <div className="ax-sec" style={{marginBottom:8}}><Zap size={11}/> Claude API Key</div>
+            <div style={{fontSize:11,color:"#6b8299",marginBottom:10,lineHeight:1.6}}>
+              Required for AI Advisor and statement parsing.{" "}
+              {apiKey
+                ? <span style={{color:"#00d4a4",fontWeight:600}}>✓ Key set ({apiKey.slice(0,8)}…)</span>
+                : <span style={{color:"#ff8c42",fontWeight:600}}>⚠ Not configured</span>}
+              <br/>Get a free key at <b style={{color:"#c9a84c"}}>console.anthropic.com</b> → API Keys. Stored locally only.
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:200}}>
+                <label className="ax-label">API Key (sk-ant-…)</label>
+                <input className="ax-input" type="password" value={apiKeyInput}
+                  onChange={e=>setApiKeyInput(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&saveApiKey()}
+                  placeholder={apiKey?"Update key (leave blank to keep current)":"sk-ant-api03-…"}/>
+              </div>
+              <button className="ax-btn primary" onClick={saveApiKey} disabled={!apiKeyInput.trim()}>
+                <Save size={12}/> Save Key
+              </button>
+            </div>
+            {apiKey&&<button className="ax-btn" style={{marginTop:8,fontSize:11,color:"#ff5252",borderColor:"#ff525260"}} onClick={async()=>{setApiKey("");await persist("apex-apikey","");flash("API key cleared.");}}>Clear key</button>}
           </div>
 
           {/* ── Wealth Target ── */}
@@ -989,7 +1090,7 @@ Respond EXACTLY:
     if(!entries.length) return(
       <div className="apex">
         {showSettings && <SettingsModal/>}
-        <AppHeader metrics={null} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+        <AppHeader metrics={null} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:360,gap:16}}>
           <Target size={44} color="#dde4ee"/>
           <div style={{color:"#6b8299",fontSize:14,textAlign:"center",maxWidth:300,lineHeight:1.7}}>
@@ -1023,7 +1124,7 @@ Respond EXACTLY:
     return(
       <div className="apex">
         {showSettings && <SettingsModal/>}
-        <AppHeader metrics={m} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+        <AppHeader metrics={m} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:18}}>
           {/* Profile strip */}
           {(profile.name||profile.age)&&(
@@ -1276,7 +1377,7 @@ Respond EXACTLY:
   if(tab==="goals") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
 
         {/* Overview */}
@@ -1403,7 +1504,7 @@ Respond EXACTLY:
     return(
       <div className="apex">
         {showSettings && <SettingsModal/>}
-        <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+        <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
 
           {/* Source attribution */}
@@ -1698,7 +1799,7 @@ Respond EXACTLY:
     return(
       <div className="apex">
         {showSettings && <SettingsModal/>}
-        <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+        <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
 
           {/* Overall protection score */}
@@ -1884,7 +1985,7 @@ Respond EXACTLY:
   if(tab==="profile") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
         <div className="ax-card" style={{display:"flex",alignItems:"center",gap:16,padding:"16px 20px"}}>
           <div className="avatar" style={{width:58,height:58,fontSize:20}}>{initials(profile.name)}</div>
@@ -1976,10 +2077,11 @@ Respond EXACTLY:
   if(tab==="update") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
         <div className="ax-card">
           <div className="ax-sec"><UploadCloud size={11}/> Upload Statement (Optional)</div>
+          {!apiKey&&<div style={{fontSize:11,color:"#ff8c42",background:"rgba(255,140,66,.07)",border:"1px solid rgba(255,140,66,.25)",borderRadius:8,padding:"7px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Zap size={11}/> Add your Claude API key in <button className="ax-btn" style={{fontSize:10,padding:"2px 8px"}} onClick={()=>setShowSettings(true)}>Settings ⚙</button> to enable AI parsing.</div>}
           <div className="drop-zone" onClick={()=>fileRef.current?.click()} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f){setUploadFile(f);parseStatement(f);}}}>
             <input ref={fileRef} type="file" accept=".pdf,image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(f){setUploadFile(f);parseStatement(f);}}}/>
             {parsingFile?<div style={{display:"flex",alignItems:"center",gap:8,justifyContent:"center",color:"#c9a84c",fontSize:12}}><Loader size={14} className="spinning"/> Parsing with AI...</div>
@@ -2046,7 +2148,7 @@ Respond EXACTLY:
   if(tab==="advisor") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
         {(pComplete<60||!goals.length)&&(
           <div style={{background:"rgba(201,168,76,.07)",border:"1px solid rgba(201,168,76,.2)",borderRadius:10,padding:"10px 14px",fontSize:12,color:"#c9a84c",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -2084,7 +2186,7 @@ Respond EXACTLY:
   if(tab==="history") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:12}}>
         {[...entries].reverse().map((e,idx)=>{
           const inv=Object.values(e.investments).reduce((a,b)=>a+b,0),loans=Object.values(e.loans).reduce((a,b)=>a+b,0);
