@@ -31,14 +31,17 @@ function goalVol(ret) { return ret < 10 ? 6 : ret < 14 ? 12 : 20; }
 function monteCarlo(corpus, monthly, target, years, annRet, annVol) {
   if (years <= 0) return corpus >= target ? 100 : 0;
   const n = Math.round(years * 12);
-  const mu = annRet / 12 / 100, sigma = annVol / Math.sqrt(12) / 100;
+  // Geometric Brownian Motion: log-return drift uses Ito correction so that
+  // E[exp(muM + z*sigmaM)] = exp(annRet/1200), preserving the intended arithmetic mean.
+  const sigmaM = annVol / 100 / Math.sqrt(12);
+  const muM    = annRet / 1200 - 0.5 * sigmaM * sigmaM;
   let hits = 0;
   for (let i = 0; i < MC_SIMS; i++) {
     let v = corpus;
     for (let m = 0; m < n; m++) {
       const u1 = Math.max(Math.random(), 1e-10), u2 = Math.random();
       const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-      v = v * (1 + mu + z * sigma) + monthly;
+      v = v * Math.exp(muM + z * sigmaM) + monthly;
     }
     if (v >= target) hits++;
   }
@@ -58,9 +61,10 @@ function monthKey() { const d = new Date(); return `${d.getFullYear()}-${String(
 function fmtML(key) { const [y,m]=key.split("-"); return new Date(+y,+m-1,1).toLocaleDateString("en-IN",{month:"short",year:"numeric"}); }
 function fmt(n) {
   if (!n && n!==0) return "₹0";
-  if (n>=1e7) return `₹${(n/1e7).toFixed(2)}Cr`;
-  if (n>=1e5) return `₹${(n/1e5).toFixed(1)}L`;
-  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+  const abs = Math.abs(n), sign = n < 0 ? "-" : "";
+  if (abs>=1e7) return `${sign}₹${(abs/1e7).toFixed(2)}Cr`;
+  if (abs>=1e5) return `${sign}₹${(abs/1e5).toFixed(1)}L`;
+  return `${sign}₹${Math.round(abs).toLocaleString("en-IN")}`;
 }
 function initials(name) { if(!name) return "?"; return name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
 
@@ -234,9 +238,10 @@ function calcMetrics(entries, goalAmount = DEFAULT_GOAL) {
   const savingsRate=totalIncome>0?(monthlySavings/totalIncome)*100:0;
   const gap=goalAmount-l.netWorth;
   const monthlyGrowth=p?l.netWorth-p.netWorth:monthlySavings;
-  const monthsToGoal=monthlyGrowth>0?Math.ceil(gap/monthlyGrowth):null;
+  const monthsToGoal=monthlyGrowth>0&&gap>0?Math.ceil(gap/monthlyGrowth):null;
   const progress=Math.min((l.netWorth/goalAmount)*100,100);
-  const dti=totalIncome>0?(totalLoans/(totalIncome*12))*100:0;
+  // DTI = monthly EMI as % of monthly income (standard lender definition)
+  const dti=totalIncome>0?(l.expenses.emi/totalIncome)*100:0;
   return {netWorth:l.netWorth,totalInv,totalLoans,totalIncome,totalExp,monthlySavings,savingsRate,gap,monthlyGrowth,monthsToGoal,progress,dti};
 }
 function eventUrgency(year) { const y=year-CUR_YEAR; return y<=2?{color:"#ff5252",label:"Urgent"}:y<=5?{color:"#c9a84c",label:"Soon"}:{color:"#00d4a4",label:"Planned"}; }
@@ -580,7 +585,7 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings })
     {id:"advisor",  label:"AI Advisor",icon:<Brain size={12}/>},
     {id:"history",  label:"History",  icon:<History size={12}/>},
   ];
-  const fh=n=>!n?"₹0":n>=1e7?`₹${(n/1e7).toFixed(n%1e7===0?0:2)}Cr`:n>=1e5?`₹${(n/1e5).toFixed(1)}L`:`₹${Math.round(n).toLocaleString("en-IN")}`;
+  const fh=n=>{if(!n)return"₹0";const a=Math.abs(n),s=n<0?"-":"";return a>=1e7?`${s}₹${(a/1e7).toFixed(a%1e7===0?0:2)}Cr`:a>=1e5?`${s}₹${(a/1e5).toFixed(1)}L`:`${s}₹${Math.round(a).toLocaleString("en-IN")}`;}
   return (
     <>
       <div style={{padding:"13px 18px",borderBottom:"1px solid #1a2e4a",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
@@ -799,7 +804,7 @@ FINANCIAL SNAPSHOT:
 - Net Worth: ₹${m.netWorth.toLocaleString("en-IN")} (${m.progress.toFixed(1)}% of ${fmt(goalAmount)} goal)
 - Monthly Income: ₹${m.totalIncome.toLocaleString("en-IN")} | Expenses: ₹${m.totalExp.toLocaleString("en-IN")}
 - Monthly Savings: ₹${m.monthlySavings.toLocaleString("en-IN")} (${m.savingsRate.toFixed(1)}%) | Allocated to sub-goals: ₹${totalGoalAlloc.toLocaleString("en-IN")} | Available for wealth goal: ₹${Math.max(0,m.monthlySavings-totalGoalAlloc).toLocaleString("en-IN")}
-- Investments: ₹${m.totalInv.toLocaleString("en-IN")} | Loans: ₹${m.totalLoans.toLocaleString("en-IN")} | DTI: ${m.dti.toFixed(1)}%
+- Investments: ₹${m.totalInv.toLocaleString("en-IN")} | Loans: ₹${m.totalLoans.toLocaleString("en-IN")} | EMI-to-income: ${m.dti.toFixed(1)}% (safe <40%)
 - Trend: ${last3}
 - Notes: ${latest.notes||"none"}
 - Analysis type: ${type}
@@ -842,7 +847,7 @@ Respond EXACTLY:
 
   // ── SETTINGS MODAL ────────────────────────────────────────────────────────────
   const SettingsModal = () => {
-    const fmtGoal = n => n>=1e7?`₹${(n/1e7).toFixed(n%1e7===0?0:2)}Cr`:n>=1e5?`₹${(n/1e5).toFixed(1)}L`:`₹${Math.round(n).toLocaleString("en-IN")}`;
+    const fmtGoal = n=>{const a=Math.abs(n||0),s=n<0?"-":"";return a>=1e7?`${s}₹${(a/1e7).toFixed(a%1e7===0?0:2)}Cr`:a>=1e5?`${s}₹${(a/1e5).toFixed(1)}L`:`${s}₹${Math.round(a).toLocaleString("en-IN")}`;};
     return(
       <div className="settings-overlay" onClick={e=>{if(e.target===e.currentTarget){setShowSettings(false);setResetTarget(null);}}}>
         <div className="settings-panel">
@@ -963,7 +968,7 @@ Respond EXACTLY:
     if(m.savingsRate<20) alerts.push(`Savings rate ${m.savingsRate.toFixed(1)}% is below the 30% minimum needed.`);
     if(m.totalLoans>m.totalInv) alerts.push(`Outstanding debt (₹${m.totalLoans.toLocaleString("en-IN")}) exceeds investments — loans eroding wealth.`);
     if(m.monthlyGrowth<0) alerts.push(`Net worth declined ₹${Math.abs(m.monthlyGrowth).toLocaleString("en-IN")} this month.`);
-    if(m.dti>40) alerts.push(`Debt-to-income ratio ${m.dti.toFixed(1)}% is dangerously high.`);
+    if(m.dti>50) alerts.push(`EMI-to-income ratio ${m.dti.toFixed(1)}% exceeds 50% — dangerously high; lenders cap at 40–50%.`);
     atRiskGoals.forEach(g=>alerts.push(`Goal "${g.name}" has only ${probs[g.id]}% probability of success — needs attention.`));
     profile.lifeEvents.filter(e=>e.year-CUR_YEAR<=2&&e.year>=CUR_YEAR&&e.label).forEach(e=>alerts.push(`Life event "${e.label}" ${e.year===CUR_YEAR?"is this year":`in ${e.year-CUR_YEAR}y`}${e.cost?` — ₹${e.cost.toLocaleString("en-IN")} needed`:""}.`));
     if(prot.lifeGap>0&&prot.lifeScore<50)   alerts.push(`Life cover is only ${prot.lifeScore}% adequate — gap of ${fmt(prot.lifeGap)}. Your dependents are underprotected.`);
