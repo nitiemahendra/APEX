@@ -14,7 +14,7 @@ const DEFAULT_GOAL = 10_000_000;
 const CLAUDE_API = "https://api.anthropic.com/v1/messages";
 const MODEL      = "claude-sonnet-4-20250514";
 const CUR_YEAR   = new Date().getFullYear();
-const MC_SIMS    = 500;
+const MC_SIMS    = 1000;
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 async function load(key) {
@@ -26,13 +26,12 @@ async function persist(key, val) { try { await window.storage.set(key, JSON.stri
 function calcInflated(amount, inflRate, years) {
   return amount * Math.pow(1 + inflRate / 100, Math.max(0, years));
 }
-function goalVol(ret) { return ret < 10 ? 6 : ret < 14 ? 12 : 20; }
+function goalVol(ret) { return ret < 8 ? 5 : ret < 13 ? 10 : 18; }
 
-function monteCarlo(corpus, monthly, target, years, annRet, annVol) {
+function monteCarlo(corpus, monthly, target, years, annRet, annVol, stepUpPct=0) {
   if (years <= 0) return corpus >= target ? 100 : 0;
   const n = Math.round(years * 12);
-  // Geometric Brownian Motion: log-return drift uses Ito correction so that
-  // E[exp(muM + z*sigmaM)] = exp(annRet/1200), preserving the intended arithmetic mean.
+  // GBM: Ito-corrected drift so E[exp(muM + z·sigmaM)] = exp(annRet/1200)
   const sigmaM = annVol / 100 / Math.sqrt(12);
   const muM    = annRet / 1200 - 0.5 * sigmaM * sigmaM;
   let hits = 0;
@@ -41,19 +40,36 @@ function monteCarlo(corpus, monthly, target, years, annRet, annVol) {
     for (let m = 0; m < n; m++) {
       const u1 = Math.max(Math.random(), 1e-10), u2 = Math.random();
       const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-      v = v * Math.exp(muM + z * sigmaM) + monthly;
+      // Annual step-up: contribution grows by stepUpPct% each year
+      const mContrib = stepUpPct > 0 ? monthly * Math.pow(1 + stepUpPct / 100, Math.floor(m / 12)) : monthly;
+      v = v * Math.exp(muM + z * sigmaM) + mContrib;
     }
     if (v >= target) hits++;
   }
   return Math.round((hits / MC_SIMS) * 100);
 }
 
-function monthlyNeeded(corpus, target, years, annRet) {
+function monthlyNeeded(corpus, target, years, annRet, stepUpPct=0) {
   if (years <= 0) return 0;
   const n = years * 12, r = annRet / 12 / 100;
-  if (r === 0) return Math.max(0, (target - corpus) / n);
-  const f = Math.pow(1 + r, n);
-  return Math.max(0, (target - corpus * f) * r / (f - 1));
+  const f = r === 0 ? 1 : Math.pow(1 + r, n);
+  const gap = target - corpus * (r === 0 ? 1 : f);
+  if (gap <= 0) return 0;
+  if (r === 0) return gap / n;
+  if (stepUpPct === 0) return gap * r / (f - 1);
+  // Growing annuity: monthly step-up rate equivalent to annual stepUpPct%
+  // FV = m₀ × [(1+r)^n − (1+g_m)^n] / (r − g_m)  →  m₀ = gap × (r − g_m) / (f − fg)
+  const g_m = Math.pow(1 + stepUpPct / 100, 1 / 12) - 1;
+  const fg  = Math.pow(1 + g_m, n);
+  if (Math.abs(r - g_m) < 1e-10) return Math.max(0, gap / (n * Math.pow(1 + r, n - 1)));
+  return Math.max(0, gap * (r - g_m) / (f - fg));
+}
+
+// Age-banded indicative term plan annual premium (₹) for pure term cover
+function calcTermPremium(age, coverAmount) {
+  if (!age || !coverAmount) return 0;
+  const ratePerK = age < 25 ? 0.7 : age < 30 ? 0.9 : age < 35 ? 1.2 : age < 40 ? 1.8 : age < 45 ? 2.8 : age < 50 ? 4.5 : 7.0;
+  return Math.round((coverAmount / 1000) * ratePerK);
 }
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -70,9 +86,9 @@ function initials(name) { if(!name) return "?"; return name.trim().split(/\s+/).
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const RISK_OPTIONS = [
-  { id:"conservative", label:"Conservative", desc:"Capital preservation", detail:"Debt/FD heavy · 7–10% returns", color:"#4a9eff", bg:"rgba(74,158,255,.08)", border:"rgba(74,158,255,.4)", ret:8  },
-  { id:"moderate",     label:"Moderate",     desc:"Balanced growth",     detail:"60% equity / 40% debt · 11–14%", color:"#c9a84c", bg:"rgba(201,168,76,.08)", border:"rgba(201,168,76,.4)", ret:12 },
-  { id:"aggressive",   label:"Aggressive",   desc:"Maximum growth",      detail:"80%+ equity · 14–18% returns",   color:"#00d4a4", bg:"rgba(0,212,164,.08)", border:"rgba(0,212,164,.4)", ret:16 },
+  { id:"conservative", label:"Conservative", desc:"Capital preservation", detail:"Debt/FD heavy · post-tax 6–8%",      color:"#4a9eff", bg:"rgba(74,158,255,.08)", border:"rgba(74,158,255,.4)", ret:7  },
+  { id:"moderate",     label:"Moderate",     desc:"Balanced growth",     detail:"60% equity / 40% debt · post-tax 10–12%", color:"#c9a84c", bg:"rgba(201,168,76,.08)", border:"rgba(201,168,76,.4)", ret:11 },
+  { id:"aggressive",   label:"Aggressive",   desc:"Maximum growth",      detail:"80%+ equity · post-tax 12–15%",     color:"#00d4a4", bg:"rgba(0,212,164,.08)", border:"rgba(0,212,164,.4)", ret:14 },
 ];
 const GOAL_CATS = {
   education: { label:"Education",    Icon:BookOpen,  color:"#7f77dd", bg:"rgba(127,119,221,.14)" },
@@ -96,9 +112,9 @@ function probCfg(p) { return PROB_CONFIG.find(c => p >= c.min) || PROB_CONFIG[3]
 function defaultEntry() {
   const id = monthKey();
   return { id, label:fmtML(id), netWorth:0, bankBalance:0,
-    investments:{equity:0,mutualFunds:0,realEstate:0,gold:0,crypto:0,epf:0},
+    investments:{equity:0,mutualFunds:0,realEstate:0,gold:0,crypto:0,epf:0,ppf:0,nps:0,fd:0,sgb:0},
     loans:{home:0,personal:0,vehicle:0,education:0},
-    income:{salary:0,business:0,rental:0,dividends:0},
+    income:{salary:0,business:0,rental:0,dividends:0,bonus:0},
     expenses:{essentials:0,discretionary:0,emi:0},
     notes:"", createdAt:new Date().toISOString() };
 }
@@ -106,9 +122,9 @@ function defaultProfile() {
   return { name:"", age:"", retirementAge:60, riskAppetite:"moderate", dependents:{spouse:false,children:0,parents:0}, lifeEvents:[] };
 }
 function defaultGoal(riskAppetite="moderate") {
-  const ret = RISK_OPTIONS.find(r=>r.id===riskAppetite)?.ret || 12;
+  const ret = RISK_OPTIONS.find(r=>r.id===riskAppetite)?.ret || 11;
   return { id:0, name:"", category:"custom", targetAmount:0, targetYear:CUR_YEAR+10,
-    currentCorpus:0, monthlyContrib:0, inflationRate:6, expectedReturn:ret, priority:"medium", notes:"" };
+    currentCorpus:0, monthlyContrib:0, inflationRate:6, expectedReturn:ret, stepUpPct:5, priority:"medium", notes:"" };
 }
 
 function defaultInsurance() {
@@ -207,21 +223,25 @@ function defaultFIPlan() {
   };
 }
 
-function calcFIPlan(plan, netWorth) {
+function calcFIPlan(plan, netWorth, investableNetWorth) {
   if (!plan.essentialMonthly) return null;
+  // Use investable NW for FI progress: exclude illiquid real estate and 40% NPS (mandatory annuity)
+  const inv = investableNetWorth != null ? investableNetWorth : netWorth;
   const inflatedAnnual = plan.essentialMonthly * 12 * Math.pow(1 + plan.inflationRate / 100, plan.yearsToRetirement);
   const fi30 = inflatedAnnual * 30, fi35 = inflatedAnnual * 35, fi40 = inflatedAnnual * 40;
-  const prog30 = fi30 > 0 ? Math.min((netWorth / fi30) * 100, 150) : 0;
+  const prog30 = fi30 > 0 ? Math.min((inv / fi30) * 100, 150) : 0;
   return {
     inflatedAnnual, fi30, fi35, fi40,
-    prog30, gap30: Math.max(0, fi30 - netWorth),
+    prog30, gap30: Math.max(0, fi30 - inv),
     withdrawalRate: fi30 > 0 ? (inflatedAnnual / fi30) * 100 : 3.33,
     bucket1Amount: inflatedAnnual * (plan.bucket1Months / 12),
+    investableNW: inv, totalNW: netWorth,
   };
 }
 
 function checkRebalancing(investments, targetPct) {
-  const equity = (investments.equity||0) + (investments.mutualFunds||0) + (investments.crypto||0);
+  // Equity bucket: listed equity + mutual funds. Crypto excluded (speculative, not an asset class).
+  const equity = (investments.equity||0) + (investments.mutualFunds||0);
   const total  = Object.values(investments).reduce((a,b)=>a+(b||0), 0);
   const cur    = total > 0 ? (equity / total) * 100 : 0;
   const drift  = cur - targetPct;
@@ -242,7 +262,14 @@ function calcMetrics(entries, goalAmount = DEFAULT_GOAL) {
   const progress=Math.min((l.netWorth/goalAmount)*100,100);
   // DTI = monthly EMI as % of monthly income (standard lender definition)
   const dti=totalIncome>0?(l.expenses.emi/totalIncome)*100:0;
-  return {netWorth:l.netWorth,totalInv,totalLoans,totalIncome,totalExp,monthlySavings,savingsRate,gap,monthlyGrowth,monthsToGoal,progress,dti};
+  // Investable NW: exclude illiquid real estate and 40% of NPS (mandatory annuity at withdrawal)
+  const realEstate=l.investments.realEstate||0;
+  const nps=l.investments.nps||0;
+  const investableNetWorth=l.netWorth-realEstate-(nps*0.4);
+  // Cross-check: sum-of-parts NW vs user-entered NW — flag >15% gap
+  const computedNW=totalInv+(l.bankBalance||0)-totalLoans;
+  const nwDiscrepancy=l.netWorth>0&&Math.abs(computedNW-l.netWorth)/l.netWorth>0.15;
+  return {netWorth:l.netWorth,totalInv,totalLoans,totalIncome,totalExp,monthlySavings,savingsRate,gap,monthlyGrowth,monthsToGoal,progress,dti,investableNetWorth,computedNW,nwDiscrepancy,nps};
 }
 function eventUrgency(year) { const y=year-CUR_YEAR; return y<=2?{color:"#ff5252",label:"Urgent"}:y<=5?{color:"#c9a84c",label:"Soon"}:{color:"#00d4a4",label:"Planned"}; }
 function profileCompleteness(p) { let s=0; if(p.name)s++;if(p.age)s++;if(p.retirementAge)s++;if(p.riskAppetite)s++;if(p.lifeEvents.length>0)s++; return Math.round(s/5*100); }
@@ -442,7 +469,7 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
   const yrs = goal.targetYear - CUR_YEAR;
   const inflated = calcInflated(goal.targetAmount, goal.inflationRate, yrs);
   const corpusPct = inflated > 0 ? Math.min((goal.currentCorpus / inflated) * 100, 100) : 0;
-  const needed = monthlyNeeded(goal.currentCorpus, inflated, yrs, goal.expectedReturn);
+  const needed = monthlyNeeded(goal.currentCorpus, inflated, yrs, goal.expectedReturn, goal.stepUpPct||0);
   const gap = Math.max(0, needed - goal.monthlyContrib);
   const cat = GOAL_CATS[goal.category] || GOAL_CATS.custom;
   const CatIcon = cat.icon;
@@ -542,7 +569,12 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
             </div>
             <div>
               <label className="ax-label">Expected Return (%)</label>
-              <input className="ax-input" type="number" min="1" max="30" step="0.5" value={goal.expectedReturn} onChange={e=>onChange("expectedReturn",parseFloat(e.target.value)||12)}/>
+              <input className="ax-input" type="number" min="1" max="30" step="0.5" value={goal.expectedReturn} onChange={e=>onChange("expectedReturn",parseFloat(e.target.value)||11)}/>
+            </div>
+            <div>
+              <label className="ax-label">Annual SIP Step-Up (%)</label>
+              <input className="ax-input" type="number" min="0" max="30" step="1" value={goal.stepUpPct??5} onChange={e=>onChange("stepUpPct",parseFloat(e.target.value)||0)} placeholder="e.g. 5"/>
+              <div style={{fontSize:10,color:"#3d5a7a",marginTop:3}}>Raise contribution by this % each year</div>
             </div>
           </div>
 
@@ -551,7 +583,7 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
             <span style={{color:"#3d5a7a"}}>Inflation-adj target</span>
             <b style={{color:"#dde3f0"}}>{fmt(inflated)}</b>
             <span style={{color:"#3d5a7a"}}>·</span>
-            <span style={{color:"#3d5a7a"}}>Monthly needed</span>
+            <span style={{color:"#3d5a7a"}}>Monthly needed{(goal.stepUpPct||0)>0?` (yr-1, ${goal.stepUpPct}% step-up)`:""}</span>
             <b style={{color:"#c9a84c"}}>{fmt(needed)}/mo</b>
             <span style={{color:"#3d5a7a"}}>·</span>
             <span style={{color:"#3d5a7a"}}>Volatility assumption</span>
@@ -667,7 +699,7 @@ export default function App() {
         const yrs=g.targetYear-CUR_YEAR;
         const inflated=calcInflated(g.targetAmount,g.inflationRate,yrs);
         const vol=goalVol(g.expectedReturn);
-        res[g.id]=monteCarlo(g.currentCorpus,g.monthlyContrib,inflated,yrs,g.expectedReturn,vol);
+        res[g.id]=monteCarlo(g.currentCorpus,g.monthlyContrib,inflated,yrs,g.expectedReturn,vol,g.stepUpPct||0);
       });
       setProbs(res);
       setComputing(false);
@@ -685,7 +717,7 @@ export default function App() {
   const avgProb    = goals.length ? Math.round(Object.values(probs).reduce((a,b)=>a+b,0)/goals.length) : null;
   const atRiskGoals= goals.filter(g=>probs[g.id]!=null&&probs[g.id]<50);
   const prot       = calcProtection(insurance, profile, metrics);
-  const fi         = calcFIPlan(fiPlan, metrics?.netWorth || 0);
+  const fi         = calcFIPlan(fiPlan, metrics?.netWorth || 0, metrics?.investableNetWorth);
   const rebalCheck = metrics ? checkRebalancing(entries[entries.length-1]?.investments || {}, fiPlan.targetEquityPct) : null;
 
   const flash = msg=>{ setSaveMsg(msg); setTimeout(()=>setSaveMsg(""),2500); };
@@ -786,11 +818,19 @@ export default function App() {
     const evStr=profile.lifeEvents.filter(e=>e.year>=CUR_YEAR&&e.label).sort((a,b)=>a.year-b.year).map(e=>`  • ${e.label}: ${e.year} (${e.year-CUR_YEAR}y away)${e.cost?` · ₹${e.cost.toLocaleString("en-IN")} needed`:""}`).join("\n");
     const goalStr=goals.map(g=>{
       const yrs=g.targetYear-CUR_YEAR, infl=calcInflated(g.targetAmount,g.inflationRate,yrs), prob=probs[g.id];
-      const needed=monthlyNeeded(g.currentCorpus,infl,yrs,g.expectedReturn);
-      return `  • ${g.name} (${g.category}): Target ₹${Math.round(infl).toLocaleString("en-IN")} by ${g.targetYear} | Corpus ₹${g.currentCorpus.toLocaleString("en-IN")} | Contributing ₹${g.monthlyContrib}/mo | Needs ₹${Math.round(needed)}/mo | MC Probability: ${prob??0}%`;
+      const needed=monthlyNeeded(g.currentCorpus,infl,yrs,g.expectedReturn,g.stepUpPct||0);
+      return `  • ${g.name} (${g.category}): Target ₹${Math.round(infl).toLocaleString("en-IN")} by ${g.targetYear} | Corpus ₹${g.currentCorpus.toLocaleString("en-IN")} | Contributing ₹${g.monthlyContrib}/mo${(g.stepUpPct||0)>0?` (${g.stepUpPct}% step-up)`:""}| Needs ₹${Math.round(needed)}/mo (yr-1) | MC Probability: ${prob??0}%`;
     }).join("\n");
-    const fiStr = fi ? `\nFI PLAN (Pattu 30× Framework):\n- Essential monthly today: ₹${fiPlan.essentialMonthly.toLocaleString("en-IN")}\n- Lifestyle inflation: ${fiPlan.inflationRate}%\n- Years to retirement: ${fiPlan.yearsToRetirement}\n- Inflated annual expense at retirement: ₹${Math.round(fi.inflatedAnnual).toLocaleString("en-IN")}\n- FI Threshold (30×): ₹${Math.round(fi.fi30).toLocaleString("en-IN")} | Progress: ${fi.prog30.toFixed(1)}%\n- Comfortable FI (35×): ₹${Math.round(fi.fi35).toLocaleString("en-IN")}\n- True FI (40×): ₹${Math.round(fi.fi40).toLocaleString("en-IN")}\n- Gap to FI30×: ₹${Math.round(fi.gap30).toLocaleString("en-IN")}\n- Savings rate benchmark (≥50% of essential expenses): ₹${(fiPlan.essentialMonthly*0.5).toLocaleString("en-IN")}/mo` : "";
-    return `\nPERSONAL PROFILE:\n- Name: ${p.name||"?"}, Age: ${p.age}${ytr?` (${ytr}y to retire)`:""}\n- Risk: ${p.riskAppetite?.toUpperCase()} — ${risk?.detail}\n- Dependents: ${deps.length?deps.join(", "):"None"}${fiStr}\n\nLIFE EVENTS:\n${evStr||"  None"}\n\nFINANCIAL GOALS (${goals.length} tracked, avg MC probability ${avgProb??0}%):\n${goalStr||"  None set"}\n- Total monthly allocated to goals: ₹${totalGoalAlloc.toLocaleString("en-IN")}\n\nRISK & INSURANCE (Protection Score ${prot.overall}/100 — ${prot.overallCfg.label}):\n- Life Cover: ₹${prot.curLife.toLocaleString("en-IN")} of ₹${prot.recLife.toLocaleString("en-IN")} recommended (${prot.lifeScore}% adequate)${prot.lifeGap>0?` — GAP ₹${prot.lifeGap.toLocaleString("en-IN")}`:""}\n- Health Cover: ₹${prot.curHealth.toLocaleString("en-IN")} of ₹${prot.recHealth.toLocaleString("en-IN")} recommended (${prot.healthScore}% adequate)${prot.healthGap>0?` — GAP ₹${prot.healthGap.toLocaleString("en-IN")}`:""}\n- Emergency Fund: ${prot.emMonths.toFixed(1)} months of expenses (target 6 months, ${prot.emScore}% adequate)${prot.emGap>0?` — GAP ₹${prot.emGap.toLocaleString("en-IN")}`:""}\n- Disability Cover: ${prot.disScore}% adequate\n- Credit Score: ${insurance.creditScore>0?`${insurance.creditScore} (${prot.creditLabel})`:"Not recorded"}`;
+    const latest = entries.length ? entries[entries.length-1] : null;
+    const npsBalance = latest?.investments?.nps || 0;
+    const ppfBalance = latest?.investments?.ppf || 0;
+    const fdBalance  = latest?.investments?.fd  || 0;
+    const sgbBalance = latest?.investments?.sgb || 0;
+    const lastBonus  = latest?.income?.bonus || 0;
+    const investableNW = metrics?.investableNetWorth;
+    const fiStr = fi ? `\nFI PLAN (Pattu 30× Framework):\n- Essential monthly today: ₹${fiPlan.essentialMonthly.toLocaleString("en-IN")}\n- Lifestyle inflation: ${fiPlan.inflationRate}%\n- Years to retirement: ${fiPlan.yearsToRetirement}\n- Inflated annual expense at retirement: ₹${Math.round(fi.inflatedAnnual).toLocaleString("en-IN")}\n- FI Threshold (30×): ₹${Math.round(fi.fi30).toLocaleString("en-IN")} | Progress (investable NW): ${fi.prog30.toFixed(1)}%\n- Investable NW: ₹${Math.round(fi.investableNW).toLocaleString("en-IN")} (excludes real estate & 40% NPS annuity)\n- Comfortable FI (35×): ₹${Math.round(fi.fi35).toLocaleString("en-IN")}\n- True FI (40×): ₹${Math.round(fi.fi40).toLocaleString("en-IN")}\n- Gap to FI30×: ₹${Math.round(fi.gap30).toLocaleString("en-IN")}\n- Savings rate benchmark (≥50% of essential expenses): ₹${(fiPlan.essentialMonthly*0.5).toLocaleString("en-IN")}/mo` : "";
+    const portfolioStr = (npsBalance||ppfBalance||fdBalance||sgbBalance) ? `\nPORTFOLIO DETAIL:\n- NPS balance: ₹${npsBalance.toLocaleString("en-IN")} (40% = ₹${Math.round(npsBalance*0.4).toLocaleString("en-IN")} locked annuity at withdrawal; EET tax)\n- PPF balance: ₹${ppfBalance.toLocaleString("en-IN")} (EEE, 7.1% p.a., 15-year lock-in)\n- Fixed Deposits: ₹${fdBalance.toLocaleString("en-IN")}\n- Sovereign Gold Bonds: ₹${sgbBalance.toLocaleString("en-IN")} (2.5% coupon + price appreciation)${lastBonus?`\n- Bonus received this month: ₹${lastBonus.toLocaleString("en-IN")}` : ""}` : "";
+    return `\nPERSONAL PROFILE:\n- Name: ${p.name||"?"}, Age: ${p.age}${ytr?` (${ytr}y to retire)`:""}\n- Risk: ${p.riskAppetite?.toUpperCase()} — ${risk?.detail}\n- Dependents: ${deps.length?deps.join(", "):"None"}${fiStr}${portfolioStr}\n\nLIFE EVENTS:\n${evStr||"  None"}\n\nFINANCIAL GOALS (${goals.length} tracked, avg MC probability ${avgProb??0}%):\n${goalStr||"  None set"}\n- Total monthly allocated to goals: ₹${totalGoalAlloc.toLocaleString("en-IN")}\n\nRISK & INSURANCE (Protection Score ${prot.overall}/100 — ${prot.overallCfg.label}):\n- Life Cover: ₹${prot.curLife.toLocaleString("en-IN")} of ₹${prot.recLife.toLocaleString("en-IN")} recommended (${prot.lifeScore}% adequate)${prot.lifeGap>0?` — GAP ₹${prot.lifeGap.toLocaleString("en-IN")}`:""}\n- Health Cover: ₹${prot.curHealth.toLocaleString("en-IN")} of ₹${prot.recHealth.toLocaleString("en-IN")} recommended (${prot.healthScore}% adequate)${prot.healthGap>0?` — GAP ₹${prot.healthGap.toLocaleString("en-IN")}`:""}\n- Emergency Fund: ${prot.emMonths.toFixed(1)} months of expenses (target 6 months, ${prot.emScore}% adequate)${prot.emGap>0?` — GAP ₹${prot.emGap.toLocaleString("en-IN")}`:""}\n- Disability Cover: ${prot.disScore}% adequate\n- Credit Score: ${insurance.creditScore>0?`${insurance.creditScore} (${prot.creditLabel})`:"Not recorded"}`;
   };
 
   // ── AI analysis ──────────────────────────────────────────────────────────────
@@ -801,7 +841,7 @@ export default function App() {
     const prompt=`You are APEX, an elite personal financial advisor for an Indian investor. Client goal: ${fmt(goalAmount)} net worth ASAP. All amounts are in Indian Rupees (₹).
 ${buildCtx()}
 FINANCIAL SNAPSHOT:
-- Net Worth: ₹${m.netWorth.toLocaleString("en-IN")} (${m.progress.toFixed(1)}% of ${fmt(goalAmount)} goal)
+- Total Net Worth: ₹${m.netWorth.toLocaleString("en-IN")} | Investable NW: ₹${m.investableNetWorth.toLocaleString("en-IN")} (${m.progress.toFixed(1)}% of ${fmt(goalAmount)} goal)
 - Monthly Income: ₹${m.totalIncome.toLocaleString("en-IN")} | Expenses: ₹${m.totalExp.toLocaleString("en-IN")}
 - Monthly Savings: ₹${m.monthlySavings.toLocaleString("en-IN")} (${m.savingsRate.toFixed(1)}%) | Allocated to sub-goals: ₹${totalGoalAlloc.toLocaleString("en-IN")} | Available for wealth goal: ₹${Math.max(0,m.monthlySavings-totalGoalAlloc).toLocaleString("en-IN")}
 - Investments: ₹${m.totalInv.toLocaleString("en-IN")} | Loans: ₹${m.totalLoans.toLocaleString("en-IN")} | EMI-to-income: ${m.dti.toFixed(1)}% (safe <40%)
@@ -977,6 +1017,8 @@ Respond EXACTLY:
     if(prot.disScore<30)                      alerts.push(`Disability cover is critically low (${prot.disScore}%). Loss of income is the #1 wealth-destruction risk.`);
     if(rebalCheck?.needsRebalancing)          alerts.push(`Asset allocation drift ${rebalCheck.drift>0?"+":""}${rebalCheck.drift.toFixed(1)}% (equity at ${rebalCheck.cur.toFixed(0)}% vs target ${fiPlan.targetEquityPct}%). Rebalance triggered — Pattu rule: act when drift >5%.`);
     if(fi&&m.monthlySavings < fiPlan.essentialMonthly*0.5&&fiPlan.essentialMonthly>0) alerts.push(`Savings rate is below Pattu's benchmark (≥50% of essential expenses = ${fmt(fiPlan.essentialMonthly*0.5)}/mo). Currently saving ${fmt(m.monthlySavings)}/mo.`);
+    if(m.nwDiscrepancy) alerts.push(`Net worth (${fmt(m.netWorth)}) differs from sum-of-components (${fmt(m.computedNW)}) by >15%. Update either the NW field or individual investment/loan fields for accurate tracking.`);
+    if((m.nps||0)>0) alerts.push(`NPS balance ${fmt(m.nps)} — remember: 40% is locked into annuity at withdrawal and excluded from investable net worth (${fmt(m.investableNetWorth)}).`);
 
     return(
       <div className="apex">
@@ -1112,7 +1154,7 @@ Respond EXACTLY:
                       <div style={{width:`${Math.min(fi.prog30,100)}%`,height:"100%",background:fi.prog30>=100?"#00d4a4":"#c9a84c",borderRadius:3,transition:"width .9s ease"}}/>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#3d5a7a"}}>
-                      <span>Current {fmt(metrics?.netWorth||0)} · <b style={{color:fi.prog30>=100?"#00d4a4":"#c9a84c"}}>{fi.prog30.toFixed(1)}% to FI</b></span>
+                      <span>Investable {fmt(fi.investableNW)} · <b style={{color:fi.prog30>=100?"#00d4a4":"#c9a84c"}}>{fi.prog30.toFixed(1)}% to FI</b></span>
                       <span>Year-1 withdrawal: {fi.withdrawalRate.toFixed(2)}%</span>
                     </div>
                   </div>
@@ -1251,7 +1293,7 @@ Respond EXACTLY:
         <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.15)",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"flex-start"}}>
           <Sigma size={14} color="#c9a84c" style={{flexShrink:0,marginTop:1}}/>
           <div style={{fontSize:11,color:"#8aa0be",lineHeight:1.6}}>
-            <b style={{color:"#c9a84c"}}>Monte Carlo simulation</b> — Each goal runs {MC_SIMS} simulations with randomized returns drawn from a normal distribution around your expected return. Probability = % of simulations where your corpus reaches the inflation-adjusted target. Target amounts are in today's money; APEX inflates them to the target year.
+            <b style={{color:"#c9a84c"}}>Monte Carlo simulation</b> — Each goal runs {MC_SIMS} Geometric Brownian Motion paths with log-normal return draws (Ito-corrected). Probability = % of paths where corpus reaches the inflation-adjusted target. Step-up SIP contributions grow annually per the goal's step-up rate. Target amounts in today's money; APEX inflates to target year.
           </div>
         </div>
 
@@ -1310,18 +1352,22 @@ Respond EXACTLY:
               </div>
               <div>
                 <label className="ax-label">Expected Return (%)</label>
-                <input className="ax-input" type="number" min="1" max="30" step="0.5" value={addGoalForm.expectedReturn} onChange={e=>setAddGoalForm(f=>({...f,expectedReturn:parseFloat(e.target.value)||12}))}/>
+                <input className="ax-input" type="number" min="1" max="30" step="0.5" value={addGoalForm.expectedReturn} onChange={e=>setAddGoalForm(f=>({...f,expectedReturn:parseFloat(e.target.value)||11}))}/>
+              </div>
+              <div>
+                <label className="ax-label">Annual SIP Step-Up (%)</label>
+                <input className="ax-input" type="number" min="0" max="30" step="1" value={addGoalForm.stepUpPct??5} onChange={e=>setAddGoalForm(f=>({...f,stepUpPct:parseFloat(e.target.value)||0}))} placeholder="e.g. 5"/>
               </div>
             </div>
             {/* Preview */}
             {addGoalForm.targetAmount>0&&addGoalForm.targetYear>CUR_YEAR&&(()=>{
               const yrs=addGoalForm.targetYear-CUR_YEAR;
               const inflated=calcInflated(addGoalForm.targetAmount,addGoalForm.inflationRate,yrs);
-              const needed=monthlyNeeded(addGoalForm.currentCorpus,inflated,yrs,addGoalForm.expectedReturn);
+              const needed=monthlyNeeded(addGoalForm.currentCorpus,inflated,yrs,addGoalForm.expectedReturn,addGoalForm.stepUpPct||0);
               return(
                 <div style={{padding:"10px 12px",background:"#080f1e",borderRadius:9,fontSize:11,color:"#3d5a7a",marginBottom:12,display:"flex",gap:14,flexWrap:"wrap"}}>
                   <span>Inflation-adj target <b style={{color:"#dde3f0"}}>{fmt(inflated)}</b></span>
-                  <span>Monthly needed <b style={{color:"#c9a84c"}}>{fmt(needed)}/mo</b></span>
+                  <span>Monthly needed{(addGoalForm.stepUpPct||0)>0?` (yr-1, ${addGoalForm.stepUpPct}% step-up)`:""} <b style={{color:"#c9a84c"}}>{fmt(needed)}/mo</b></span>
                   <span>Gap <b style={{color:needed>addGoalForm.monthlyContrib?"#ff8c42":"#00d4a4"}}>{fmt(Math.max(0,needed-addGoalForm.monthlyContrib))}/mo</b></span>
                   <span>Volatility assumption <b style={{color:"#8aa0be"}}>{goalVol(addGoalForm.expectedReturn)}% σ</b></span>
                 </div>
@@ -1452,7 +1498,7 @@ Respond EXACTLY:
                     <div style={{position:"absolute",top:0,left:`${Math.min(100/35*30,100)}%`,width:2,height:"100%",background:"rgba(0,212,164,.5)"}}/>
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#3d5a7a",marginTop:3}}>
-                    <span>{fmt(metrics?.netWorth||0)} now</span>
+                    <span>Investable {fmt(fi.investableNW)} · Total NW {fmt(fi.totalNW)}</span>
                     <span>Gap: {fmt(fi.gap30)}</span>
                     <span>FI30× {fmt(fi.fi30)}</span>
                   </div>
@@ -1463,6 +1509,16 @@ Respond EXACTLY:
                   <span style={{color:"#2a4060"}}>·</span>
                   <span>Rises with inflation each year (not constant like US 4% rule)</span>
                 </div>
+                {fi.totalNW !== fi.investableNW && (
+                  <div style={{marginTop:10,fontSize:11,color:"#8aa0be",background:"rgba(138,160,190,.06)",borderRadius:8,padding:"8px 12px",lineHeight:1.6,borderLeft:"2px solid #3d5a7a"}}>
+                    <b style={{color:"#c9a84c"}}>Investable NW {fmt(fi.investableNW)}</b> vs Total NW {fmt(fi.totalNW)} — real estate ({fmt(entries.length?entries[entries.length-1].investments.realEstate||0:0)}) is illiquid and excluded. NPS 40% annuity portion locked.
+                  </div>
+                )}
+                {metrics?.nps > 0 && (
+                  <div style={{marginTop:8,fontSize:11,color:"#ff8c42",background:"rgba(255,140,66,.06)",borderRadius:8,padding:"8px 12px",lineHeight:1.6,borderLeft:"2px solid #ff8c4260"}}>
+                    <b>NPS Alert:</b> At withdrawal, 40% of your NPS corpus ({fmt((metrics.nps)*0.4)}) must be used to buy an annuity — it cannot be lump-sum withdrawn. Only 60% ({fmt((metrics.nps)*0.6)}) is freely accessible. Plan your corpus target accordingly.
+                  </div>
+                )}
               </div>
             )}
             {!fiPlan.essentialMonthly && <div style={{fontSize:11,color:"#3d5a7a",textAlign:"center",padding:12}}>Enter your essential monthly expenses above to calculate your FI number.</div>}
@@ -1569,7 +1625,10 @@ Respond EXACTLY:
                   </div>
                 )}
                 <div style={{fontSize:10,color:"#3d5a7a",marginTop:rb.needsRebalancing?6:0}}>
-                  Equity tracked: stocks + mutual funds + crypto. Debt: real estate + gold + EPF.
+                  Equity tracked: stocks + mutual funds. Debt: real estate + gold + EPF + PPF + NPS + FD + SGB. Crypto classified separately (speculative).
+                </div>
+                <div style={{fontSize:10,color:"#3d5a7a",marginTop:4,lineHeight:1.5}}>
+                  <b style={{color:"#8aa0be"}}>LTCG note:</b> Equity gains &gt;₹1L/year taxed at 10% (LTCG). Don't let tax anxiety prevent necessary rebalancing — a 5%+ drift costs more in long-term risk than tax. Use SIP top-up to debt instead of selling equity where possible.
                 </div>
               </div>
             )}
@@ -1686,7 +1745,7 @@ Respond EXACTLY:
           <CoverCard title="Life Cover (Term + Other)" Icon={Umbrella} iconColor="#4a9eff"
             score={p.lifeScore} current={p.curLife} recommended={p.recLife} gap={p.lifeGap}
             insight={p.lifeScore<80
-              ? `You need ${fmt(p.recLife)} in total life cover (${p.hasDep?"15×":"10×"} annual income${p.hasDep?" with dependents":""}). Consider a term plan — ₹1Cr cover typically costs ₹8,000–15,000/year for a 30-year-old. Pure term > ULIPs for this purpose.`
+              ? (()=>{const premium=calcTermPremium(profile.age,p.lifeGap);return`You need ${fmt(p.recLife)} in total life cover (${p.hasDep?"15×":"10×"} annual income${p.hasDep?" with dependents":""}). Gap: ${fmt(p.lifeGap)}. Indicative term plan premium for this gap: ~₹${premium>0?premium.toLocaleString("en-IN"):"—"}/year${profile.age?` at age ${profile.age}`:""}. Pure term > ULIPs for this purpose.`;})()
               : "Life cover is adequate. Review every 5 years or when income changes significantly."
             }>
             <div className="frow" style={{marginBottom:0}}>
@@ -1940,8 +1999,12 @@ Respond EXACTLY:
             <Field label="Mutual Funds" value={form.investments.mutualFunds} onChange={v=>upd("investments","mutualFunds",v)}/>
             <Field label="Real Estate" value={form.investments.realEstate} onChange={v=>upd("investments","realEstate",v)}/>
             <Field label="Gold / Commodities" value={form.investments.gold} onChange={v=>upd("investments","gold",v)}/>
+            <Field label="EPF / PF (balance)" value={form.investments.epf} onChange={v=>upd("investments","epf",v)}/>
+            <Field label="NPS (balance)" value={form.investments.nps||0} onChange={v=>upd("investments","nps",v)}/>
+            <Field label="PPF (balance)" value={form.investments.ppf||0} onChange={v=>upd("investments","ppf",v)}/>
+            <Field label="Fixed Deposits" value={form.investments.fd||0} onChange={v=>upd("investments","fd",v)}/>
+            <Field label="Sovereign Gold Bonds" value={form.investments.sgb||0} onChange={v=>upd("investments","sgb",v)}/>
             <Field label="Crypto" value={form.investments.crypto} onChange={v=>upd("investments","crypto",v)}/>
-            <Field label="EPF / PF / NPS" value={form.investments.epf} onChange={v=>upd("investments","epf",v)}/>
           </div>
           <hr className="ax-divider"/>
           <div className="ax-sec"><CreditCard size={11}/> Outstanding Loans</div>
@@ -1958,6 +2021,7 @@ Respond EXACTLY:
             <Field label="Business / Freelance" value={form.income.business} onChange={v=>upd("income","business",v)}/>
             <Field label="Rental Income" value={form.income.rental} onChange={v=>upd("income","rental",v)}/>
             <Field label="Dividends / Returns" value={form.income.dividends} onChange={v=>upd("income","dividends",v)}/>
+            <Field label="Bonus (this month, if any)" value={form.income.bonus||0} onChange={v=>upd("income","bonus",v)}/>
           </div>
           <hr className="ax-divider"/>
           <div className="ax-sec">Monthly Expenses</div>
