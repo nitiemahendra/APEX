@@ -98,7 +98,7 @@ const GOAL_CATS = {
   emergency: { label:"Emergency",    Icon:Shield,    color:"#ff8c42", bg:"rgba(255,140,66,.14)"  },
   business:  { label:"Business",     Icon:Briefcase, color:"#d4537e", bg:"rgba(212,83,126,.14)"  },
   wedding:   { label:"Wedding",      Icon:Heart,     color:"#f07090", bg:"rgba(240,112,144,.14)" },
-  custom:    { label:"Custom",       Icon:Star,      color:"#8aa0be", bg:"rgba(138,160,190,.14)" },
+  custom:    { label:"Custom",       Icon:Star,      color:"#526a84", bg:"rgba(138,160,190,.14)" },
 };
 const PROB_CONFIG = [
   { min:75, color:"#00d4a4", bg:"rgba(0,212,164,.1)",  label:"On track"  },
@@ -282,75 +282,75 @@ function useStyles() {
     el.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
       .apex*{box-sizing:border-box;margin:0;padding:0}
-      .apex{font-family:'Sora',sans-serif;background:#05091a;color:#dde3f0;min-height:100vh}
-      .ax-card{background:#0b1628;border:1px solid #1a2e4a;border-radius:12px;padding:18px}
-      .ax-btn{background:transparent;border:1px solid #1a2e4a;color:#dde3f0;padding:8px 15px;border-radius:8px;cursor:pointer;font-family:'Sora',sans-serif;font-size:12px;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+      .apex{font-family:'Sora',sans-serif;background:#f0f4f8;color:#111827;min-height:100vh}
+      .ax-card{background:#ffffff;border:1px solid #dde4ee;border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+      .ax-btn{background:transparent;border:1px solid #dde4ee;color:#111827;padding:8px 15px;border-radius:8px;cursor:pointer;font-family:'Sora',sans-serif;font-size:12px;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
       .ax-btn:hover{border-color:#c9a84c;color:#c9a84c}
       .ax-btn:disabled{opacity:.4;cursor:not-allowed}
-      .ax-btn.primary{background:#c9a84c;border-color:#c9a84c;color:#05091a;font-weight:700}
+      .ax-btn.primary{background:#c9a84c;border-color:#c9a84c;color:#1a1a1a;font-weight:700}
       .ax-btn.primary:hover:not(:disabled){background:#d4b862}
       .ax-btn.del{border-color:#ff5252;color:#ff5252;padding:7px 10px}
       .ax-btn.del:hover{background:rgba(255,82,82,.08)}
-      .ax-input{background:#080f1e;border:1px solid #1a2e4a;color:#dde3f0;padding:8px 11px;border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;width:100%;transition:border-color .15s}
+      .ax-input{background:#f8fafc;border:1px solid #dde4ee;color:#111827;padding:8px 11px;border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;width:100%;transition:border-color .15s}
       .ax-input:focus{outline:none;border-color:#c9a84c}
-      .ax-input::placeholder{color:#2e4560}
-      .ax-label{font-size:10px;font-weight:600;color:#3d5a7a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;display:block}
-      .ax-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:#3d5a7a;padding:10px 13px;cursor:pointer;font-family:'Sora',sans-serif;font-size:12px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
-      .ax-tab:hover{color:#dde3f0}
+      .ax-input::placeholder{color:#94a8b8}
+      .ax-label{font-size:10px;font-weight:600;color:#6b8299;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;display:block}
+      .ax-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:#6b8299;padding:10px 13px;cursor:pointer;font-family:'Sora',sans-serif;font-size:12px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+      .ax-tab:hover{color:#1a2e4a}
       .ax-tab.active{color:#c9a84c;border-bottom-color:#c9a84c}
       .ax-mono{font-family:'Space Mono',monospace}
-      .ax-gold{color:#c9a84c}.ax-green{color:#00d4a4}.ax-red{color:#ff5252}.ax-dim{color:#3d5a7a}
-      .ax-sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#3d5a7a;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+      .ax-gold{color:#c9a84c}.ax-green{color:#00d4a4}.ax-red{color:#ff5252}.ax-dim{color:#6b8299}
+      .ax-sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b8299;margin-bottom:10px;display:flex;align-items:center;gap:6px}
       .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
       .ax-alert{border-left:3px solid #ff5252;background:rgba(255,82,82,.07);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;line-height:1.5}
-      .ax-advice{background:#080f1e;border:1px solid #1a2e4a;border-radius:10px;padding:18px;font-size:12.5px;line-height:1.8;color:#b8cce0;white-space:pre-wrap}
+      .ax-advice{background:#f8fafc;border:1px solid #dde4ee;border-radius:10px;padding:18px;font-size:12.5px;line-height:1.8;color:#2d4060;white-space:pre-wrap}
       .ax-advice strong{color:#c9a84c;font-weight:600}
-      .ax-divider{border:none;border-top:1px solid #1a2e4a;margin:14px 0}
-      .drop-zone{border:1px dashed #1a2e4a;border-radius:10px;padding:22px;text-align:center;cursor:pointer;transition:border-color .15s}
+      .ax-divider{border:none;border-top:1px solid #dde4ee;margin:14px 0}
+      .drop-zone{border:1px dashed #dde4ee;border-radius:10px;padding:22px;text-align:center;cursor:pointer;transition:border-color .15s}
       .drop-zone:hover{border-color:#c9a84c}
       .risk-btn{flex:1;min-width:140px;padding:14px 12px;border-radius:10px;cursor:pointer;text-align:left;transition:all .2s;font-family:'Sora',sans-serif}
-      .toggle-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#080f1e;border:1px solid #1a2e4a;border-radius:9px;cursor:pointer;transition:border-color .15s;user-select:none}
-      .toggle-row:hover{border-color:#2a4060}
-      .toggle-track{width:32px;height:18px;border-radius:9px;background:#1a2e4a;position:relative;transition:background .2s;flex-shrink:0}
+      .toggle-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#f8fafc;border:1px solid #dde4ee;border-radius:9px;cursor:pointer;transition:border-color .15s;user-select:none}
+      .toggle-row:hover{border-color:#c0cdd9}
+      .toggle-track{width:32px;height:18px;border-radius:9px;background:#dde4ee;position:relative;transition:background .2s;flex-shrink:0}
       .toggle-track.on{background:#c9a84c}
-      .toggle-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#dde3f0;transition:transform .2s}
+      .toggle-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#ffffff;transition:transform .2s}
       .toggle-track.on .toggle-knob{transform:translateX(14px)}
-      .stepbtn{width:26px;height:26px;border-radius:6px;border:1px solid #1a2e4a;background:#080f1e;color:#dde3f0;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1}
+      .stepbtn{width:26px;height:26px;border-radius:6px;border:1px solid #dde4ee;background:#f8fafc;color:#111827;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1}
       .stepbtn:hover{border-color:#c9a84c;color:#c9a84c}
-      .ev-row{display:grid;grid-template-columns:1fr 80px 100px 30px;gap:8px;align-items:center;padding:9px 12px;background:#080f1e;border:1px solid #1a2e4a;border-radius:9px}
-      .avatar{border-radius:12px;background:linear-gradient(135deg,#1a3a6a,#0d2040);border:1px solid #2a4a7a;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;color:#c9a84c;flex-shrink:0}
-      .pbar{height:3px;border-radius:2px;background:#1a2e4a;overflow:hidden}
+      .ev-row{display:grid;grid-template-columns:1fr 80px 100px 30px;gap:8px;align-items:center;padding:9px 12px;background:#f8fafc;border:1px solid #dde4ee;border-radius:9px}
+      .avatar{border-radius:12px;background:linear-gradient(135deg,#e8f0fb,#d0e2f8);border:1px solid #a8c4e8;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;color:#c9a84c;flex-shrink:0}
+      .pbar{height:3px;border-radius:2px;background:#dde4ee;overflow:hidden}
       .pbar-fill{height:100%;border-radius:2px;background:#c9a84c;transition:width .6s ease}
       .ev-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
-      .goal-card{background:#0b1628;border:1px solid #1a2e4a;border-radius:12px;overflow:hidden;transition:border-color .15s}
-      .goal-card:hover{border-color:#2a4060}
+      .goal-card{background:#ffffff;border:1px solid #dde4ee;border-radius:12px;overflow:hidden;transition:border-color .15s}
+      .goal-card:hover{border-color:#c0cdd9}
       .goal-card.expanded{border-color:#c9a84c}
-      .goal-progress{height:4px;border-radius:2px;background:#1a2e4a;overflow:hidden;margin:8px 0}
+      .goal-progress{height:4px;border-radius:2px;background:#dde4ee;overflow:hidden;margin:8px 0}
       .goal-progress-fill{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1)}
-      .prob-ring-track{fill:none;stroke:#1a2e4a}
+      .prob-ring-track{fill:none;stroke:#dde4ee}
       .prob-ring-fill{fill:none;stroke-linecap:round;transition:stroke-dasharray 1s cubic-bezier(.4,0,.2,1)}
       .alloc-seg{height:100%;display:inline-block;transition:width .6s ease}
       .priority-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
       /* ── Insurance module ── */
-      .ins-card{background:#0b1628;border:1px solid #1a2e4a;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
-      .ins-bar-track{height:7px;border-radius:4px;background:#1a2e4a;overflow:hidden;position:relative}
+      .ins-card{background:#ffffff;border:1px solid #dde4ee;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+      .ins-bar-track{height:7px;border-radius:4px;background:#dde4ee;overflow:hidden;position:relative}
       .ins-bar-fill{height:100%;border-radius:4px;transition:width .9s cubic-bezier(.4,0,.2,1)}
       .ins-status{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 9px;border-radius:5px;letter-spacing:.04em}
       .credit-track{height:8px;border-radius:4px;background:linear-gradient(to right,#ff5252 0%,#ff8c42 25%,#c9a84c 50%,#00d4a4 100%);position:relative}
       .credit-pin{position:absolute;top:-4px;width:4px;height:16px;border-radius:2px;background:#fff;transform:translateX(-50%)}
       .prot-score-ring{filter:drop-shadow(0 0 12px currentColor)}
       /* ── FI Planner ── */
-      .fi-multiple-btn{flex:1;padding:10px 8px;border-radius:9px;border:1px solid #1a2e4a;background:#080f1e;cursor:pointer;text-align:center;transition:all .2s;font-family:'Sora',sans-serif}
-      .fi-multiple-btn:hover{border-color:#2a4060}
-      .insight-card{border-left:3px solid;border-radius:0 10px 10px 0;padding:12px 14px;background:#080f1e;display:flex;flex-direction:column;gap:5px}
+      .fi-multiple-btn{flex:1;padding:10px 8px;border-radius:9px;border:1px solid #dde4ee;background:#f8fafc;cursor:pointer;text-align:center;transition:all .2s;font-family:'Sora',sans-serif}
+      .fi-multiple-btn:hover{border-color:#c0cdd9}
+      .insight-card{border-left:3px solid;border-radius:0 10px 10px 0;padding:12px 14px;background:#f8fafc;display:flex;flex-direction:column;gap:5px}
       .insight-tag{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:3px}
-      .bucket-lane{border:1px solid #1a2e4a;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;background:#080f1e}
+      .bucket-lane{border:1px solid #dde4ee;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc}
       /* ── Settings modal ── */
-      .settings-overlay{position:fixed;inset:0;background:rgba(5,9,26,.88);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-      .settings-panel{background:#0b1628;border:1px solid #1a2e4a;border-radius:16px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto}
-      .settings-section{padding:18px 20px;border-bottom:1px solid #1a2e4a}
+      .settings-overlay{position:fixed;inset:0;background:rgba(100,116,139,.22);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+      .settings-panel{background:#ffffff;border:1px solid #dde4ee;border-radius:16px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto}
+      .settings-section{padding:18px 20px;border-bottom:1px solid #dde4ee}
       .settings-section:last-child{border-bottom:none}
-      .reset-btn{width:100%;background:#080f1e;border:1px solid #1a2e4a;color:#dde3f0;padding:12px 14px;border-radius:9px;cursor:pointer;text-align:left;font-family:'Sora',sans-serif;font-size:12px;transition:all .15s;display:flex;align-items:center;gap:10px}
+      .reset-btn{width:100%;background:#f8fafc;border:1px solid #dde4ee;color:#111827;padding:12px 14px;border-radius:9px;cursor:pointer;text-align:left;font-family:'Sora',sans-serif;font-size:12px;transition:all .15s;display:flex;align-items:center;gap:10px}
       .reset-btn:hover{border-color:#ff5252}
       .reset-btn.danger{border-color:#ff525260;background:rgba(255,82,82,.04)}
       .reset-btn.danger:hover{border-color:#ff5252;background:rgba(255,82,82,.1)}
@@ -372,12 +372,12 @@ function GoalRing({ progress }) {
       <defs><linearGradient id="gr1" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#c9a84c"/><stop offset="100%" stopColor="#f0c97a"/>
       </linearGradient></defs>
-      <circle cx="85" cy="85" r={r} fill="none" stroke="#1a2e4a" strokeWidth="10"/>
+      <circle cx="85" cy="85" r={r} fill="none" stroke="#dde4ee" strokeWidth="10"/>
       <circle cx="85" cy="85" r={r} fill="none" stroke="url(#gr1)" strokeWidth="10"
         strokeDasharray={`${dash} ${c}`} strokeLinecap="round" transform="rotate(-90 85 85)"
         style={{transition:"stroke-dasharray 1.4s cubic-bezier(.4,0,.2,1)"}}/>
       <text x="85" y="80" textAnchor="middle" fill="#c9a84c" fontFamily="'Space Mono',monospace" fontWeight="700" fontSize="15">{progress.toFixed(1)}%</text>
-      <text x="85" y="98" textAnchor="middle" fill="#3d5a7a" fontFamily="'Sora',sans-serif" fontSize="9.5">of wealth goal</text>
+      <text x="85" y="98" textAnchor="middle" fill="#6b8299" fontFamily="'Sora',sans-serif" fontSize="9.5">of wealth goal</text>
     </svg>
   );
 }
@@ -401,8 +401,8 @@ function MetricCard({ label, value, sub, color }) {
   return (
     <div className="ax-card" style={{flex:1,minWidth:130}}>
       <div className="ax-label">{label}</div>
-      <div className="ax-mono" style={{fontSize:20,fontWeight:700,color:color||"#dde3f0",lineHeight:1.2}}>{value}</div>
-      {sub && <div style={{fontSize:10,color:"#3d5a7a",marginTop:3}}>{sub}</div>}
+      <div className="ax-mono" style={{fontSize:20,fontWeight:700,color:color||"#111827",lineHeight:1.2}}>{value}</div>
+      {sub && <div style={{fontSize:10,color:"#6b8299",marginTop:3}}>{sub}</div>}
     </div>
   );
 }
@@ -432,7 +432,7 @@ function Toggle({ value, onChange, label, sub }) {
       <div className={`toggle-track ${value?"on":""}`}><div className="toggle-knob"/></div>
       <div>
         <div style={{fontSize:13,fontWeight:500}}>{label}</div>
-        {sub && <div style={{fontSize:11,color:"#3d5a7a",marginTop:1}}>{sub}</div>}
+        {sub && <div style={{fontSize:11,color:"#6b8299",marginTop:1}}>{sub}</div>}
       </div>
     </div>
   );
@@ -447,9 +447,9 @@ function EventTimeline({ events, retirementAge, age }) {
   const xp=y=>PAD+((y-CUR_YEAR)/span)*(W-PAD*2);
   return (
     <svg width="100%" viewBox={`0 0 ${W} 90`} style={{overflow:"visible",display:"block"}}>
-      <line x1={PAD} y1={55} x2={W-PAD} y2={55} stroke="#1a2e4a" strokeWidth="1.5"/>
-      <circle cx={PAD} cy={55} r={3} fill="#2a4060"/>
-      <text x={PAD} y={72} textAnchor="middle" fill="#3d5a7a" fontSize="9" fontFamily="Sora,sans-serif">{CUR_YEAR}</text>
+      <line x1={PAD} y1={55} x2={W-PAD} y2={55} stroke="#dde4ee" strokeWidth="1.5"/>
+      <circle cx={PAD} cy={55} r={3} fill="#c0cdd9"/>
+      <text x={PAD} y={72} textAnchor="middle" fill="#6b8299" fontSize="9" fontFamily="Sora,sans-serif">{CUR_YEAR}</text>
       <circle cx={xp(retYear)} cy={55} r={4} fill="#c9a84c" opacity=".5"/>
       <text x={xp(retYear)} y={72} textAnchor="middle" fill="#c9a84c" fontSize="9" fontFamily="Sora,sans-serif" opacity=".6">Retire {retYear}</text>
       {valid.map((ev,i)=>{const x=Math.min(Math.max(xp(ev.year),PAD+10),W-PAD-10),u=eventUrgency(ev.year),up=i%2===0;return(
@@ -490,19 +490,19 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
             <span className="priority-dot" style={{background:priorityColor}}/>
             <span style={{fontWeight:600,fontSize:13}}>{goal.name||"Unnamed goal"}</span>
-            <span style={{fontSize:10,color:"#3d5a7a"}}>{cat.label} · {goal.targetYear}</span>
+            <span style={{fontSize:10,color:"#6b8299"}}>{cat.label} · {goal.targetYear}</span>
           </div>
-          <div style={{fontSize:11,color:"#3d5a7a",marginBottom:6,display:"flex",gap:10,flexWrap:"wrap"}}>
-            <span>Today: <b style={{color:"#8aa0be"}}>{fmt(goal.targetAmount)}</b></span>
-            <span>→ Inflation-adj: <b style={{color:"#dde3f0"}}>{fmt(inflated)}</b></span>
-            {yrs > 0 && <span style={{color:"#2a4060"}}>({yrs}y at {goal.inflationRate}% p.a.)</span>}
+          <div style={{fontSize:11,color:"#6b8299",marginBottom:6,display:"flex",gap:10,flexWrap:"wrap"}}>
+            <span>Today: <b style={{color:"#526a84"}}>{fmt(goal.targetAmount)}</b></span>
+            <span>→ Inflation-adj: <b style={{color:"#111827"}}>{fmt(inflated)}</b></span>
+            {yrs > 0 && <span style={{color:"#c0cdd9"}}>({yrs}y at {goal.inflationRate}% p.a.)</span>}
           </div>
           {/* Progress bar */}
           <div className="goal-progress">
             <div className="goal-progress-fill" style={{width:`${corpusPct}%`,background:cat.color}}/>
           </div>
-          <div style={{display:"flex",gap:14,fontSize:11,color:"#3d5a7a",flexWrap:"wrap"}}>
-            <span>Corpus <b style={{color:cat.color}}>{fmt(goal.currentCorpus)}</b> of <b style={{color:"#dde3f0"}}>{fmt(inflated)}</b></span>
+          <div style={{display:"flex",gap:14,fontSize:11,color:"#6b8299",flexWrap:"wrap"}}>
+            <span>Corpus <b style={{color:cat.color}}>{fmt(goal.currentCorpus)}</b> of <b style={{color:"#111827"}}>{fmt(inflated)}</b></span>
             {gap > 0 && <span style={{color:"#ff8c42"}}>⚠ Need <b>{fmt(gap)}/mo more</b></span>}
             {gap <= 0 && needed > 0 && <span style={{color:"#00d4a4"}}>✓ Contribution covers goal</span>}
           </div>
@@ -511,23 +511,23 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
         {/* Right: MC probability */}
         <div style={{flexShrink:0,textAlign:"center",width:72}}>
           {computing ? (
-            <div style={{fontSize:11,color:"#3d5a7a",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+            <div style={{fontSize:11,color:"#6b8299",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
               <Sigma size={16} className="mc-running" color="#c9a84c"/>
               <span>MC…</span>
             </div>
           ) : prob != null ? (
             <ProbRing prob={prob}/>
           ) : (
-            <div style={{fontSize:10,color:"#2a4060"}}>—</div>
+            <div style={{fontSize:10,color:"#c0cdd9"}}>—</div>
           )}
         </div>
 
-        <ChevronDown size={14} color="#3d5a7a" style={{transform:expanded?"rotate(180deg)":"none",transition:"transform .2s",flexShrink:0}}/>
+        <ChevronDown size={14} color="#6b8299" style={{transform:expanded?"rotate(180deg)":"none",transition:"transform .2s",flexShrink:0}}/>
       </div>
 
       {/* Monthly allocation strip */}
       {!expanded && goal.monthlyContrib > 0 && (
-        <div style={{padding:"0 16px 12px",display:"flex",gap:10,fontSize:11,color:"#3d5a7a"}}>
+        <div style={{padding:"0 16px 12px",display:"flex",gap:10,fontSize:11,color:"#6b8299"}}>
           <span>Contributing <b style={{color:"#c9a84c"}}>{fmt(goal.monthlyContrib)}/mo</b></span>
           <span>· Need <b style={{color:gap>0?"#ff8c42":"#00d4a4"}}>{fmt(needed)}/mo</b></span>
         </div>
@@ -535,7 +535,7 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
 
       {/* Expanded edit form */}
       {expanded && (
-        <div style={{borderTop:"1px solid #1a2e4a",padding:16,display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{borderTop:"1px solid #dde4ee",padding:16,display:"flex",flexDirection:"column",gap:12}}>
           <div className="frow" style={{marginBottom:0}}>
             <div>
               <label className="ax-label">Goal Name</label>
@@ -574,20 +574,20 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
             <div>
               <label className="ax-label">Annual SIP Step-Up (%)</label>
               <input className="ax-input" type="number" min="0" max="30" step="1" value={goal.stepUpPct??5} onChange={e=>onChange("stepUpPct",parseFloat(e.target.value)||0)} placeholder="e.g. 5"/>
-              <div style={{fontSize:10,color:"#3d5a7a",marginTop:3}}>Raise contribution by this % each year</div>
+              <div style={{fontSize:10,color:"#6b8299",marginTop:3}}>Raise contribution by this % each year</div>
             </div>
           </div>
 
           {/* Key outputs row */}
-          <div style={{display:"flex",gap:10,flexWrap:"wrap",padding:"10px 12px",background:"#080f1e",borderRadius:9,fontSize:11}}>
-            <span style={{color:"#3d5a7a"}}>Inflation-adj target</span>
-            <b style={{color:"#dde3f0"}}>{fmt(inflated)}</b>
-            <span style={{color:"#3d5a7a"}}>·</span>
-            <span style={{color:"#3d5a7a"}}>Monthly needed{(goal.stepUpPct||0)>0?` (yr-1, ${goal.stepUpPct}% step-up)`:""}</span>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",padding:"10px 12px",background:"#f8fafc",borderRadius:9,fontSize:11}}>
+            <span style={{color:"#6b8299"}}>Inflation-adj target</span>
+            <b style={{color:"#111827"}}>{fmt(inflated)}</b>
+            <span style={{color:"#6b8299"}}>·</span>
+            <span style={{color:"#6b8299"}}>Monthly needed{(goal.stepUpPct||0)>0?` (yr-1, ${goal.stepUpPct}% step-up)`:""}</span>
             <b style={{color:"#c9a84c"}}>{fmt(needed)}/mo</b>
-            <span style={{color:"#3d5a7a"}}>·</span>
-            <span style={{color:"#3d5a7a"}}>Volatility assumption</span>
-            <b style={{color:"#8aa0be"}}>{goalVol(goal.expectedReturn)}% σ</b>
+            <span style={{color:"#6b8299"}}>·</span>
+            <span style={{color:"#6b8299"}}>Volatility assumption</span>
+            <b style={{color:"#526a84"}}>{goalVol(goal.expectedReturn)}% σ</b>
           </div>
 
           <div style={{display:"flex",gap:8}}>
@@ -595,7 +595,7 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
             {["high","medium","low"].map(p=>{
               const c=p==="high"?"#ff5252":p==="medium"?"#c9a84c":"#4a9eff";
               const sel=goal.priority===p;
-              return <button key={p} className="ax-btn" style={{borderColor:sel?c:"#1a2e4a",color:sel?c:"#3d5a7a",background:sel?`${c}12`:""}} onClick={()=>onChange("priority",p)}>{p.charAt(0).toUpperCase()+p.slice(1)}</button>;
+              return <button key={p} className="ax-btn" style={{borderColor:sel?c:"#dde4ee",color:sel?c:"#6b8299",background:sel?`${c}12`:""}} onClick={()=>onChange("priority",p)}>{p.charAt(0).toUpperCase()+p.slice(1)}</button>;
             })}
             <button className="ax-btn del" style={{marginLeft:"auto"}} onClick={onDelete}><Trash2 size={12}/> Delete goal</button>
           </div>
@@ -620,9 +620,9 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings })
   const fh=n=>{if(!n)return"₹0";const a=Math.abs(n),s=n<0?"-":"";return a>=1e7?`${s}₹${(a/1e7).toFixed(a%1e7===0?0:2)}Cr`:a>=1e5?`${s}₹${(a/1e5).toFixed(1)}L`:`${s}₹${Math.round(a).toLocaleString("en-IN")}`;}
   return (
     <>
-      <div style={{padding:"13px 18px",borderBottom:"1px solid #1a2e4a",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+      <div style={{padding:"13px 18px",borderBottom:"1px solid #dde4ee",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10,background:"#ffffff",boxShadow:"0 1px 3px rgba(0,0,0,.07)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:28,height:28,borderRadius:6,background:"#c9a84c",display:"flex",alignItems:"center",justifyContent:"center"}}><Target size={13} color="#05091a"/></div>
+          <div style={{width:28,height:28,borderRadius:6,background:"#c9a84c",display:"flex",alignItems:"center",justifyContent:"center"}}><Target size={13} color="#1a1a1a"/></div>
           <div>
             <div style={{fontSize:13,fontWeight:700,letterSpacing:".06em"}}>APEX</div>
             <div className="ax-dim" style={{fontSize:9}}>{profileName?`${profileName}'s Advisor`:"Investment Advisor"} · {fh(goalAmount)} Goal</div>
@@ -633,7 +633,7 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings })
             <div style={{display:"flex",alignItems:"center",gap:10,fontSize:11}}>
               <span className="ax-dim">Net Worth</span>
               <span className="ax-mono ax-gold" style={{fontWeight:700}}>{fh(metrics.netWorth)}</span>
-              <div style={{width:80,height:3,background:"#1a2e4a",borderRadius:2}}>
+              <div style={{width:80,height:3,background:"#dde4ee",borderRadius:2}}>
                 <div style={{width:`${metrics.progress}%`,height:"100%",background:"#c9a84c",borderRadius:2,transition:"width 1s ease"}}/>
               </div>
               <span className="ax-dim">{metrics.progress.toFixed(1)}%</span>
@@ -644,7 +644,7 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings })
           </button>
         </div>
       </div>
-      <div style={{display:"flex",borderBottom:"1px solid #1a2e4a",paddingLeft:10,overflowX:"auto"}}>
+      <div style={{display:"flex",borderBottom:"1px solid #dde4ee",paddingLeft:10,overflowX:"auto",background:"#ffffff"}}>
         {tabs.map(t=><button key={t.id} className={`ax-tab ${tab===t.id?"active":""}`} onClick={()=>onTab(t.id)}>{t.icon}{t.label}</button>)}
       </div>
     </>
@@ -892,7 +892,7 @@ Respond EXACTLY:
       <div className="settings-overlay" onClick={e=>{if(e.target===e.currentTarget){setShowSettings(false);setResetTarget(null);}}}>
         <div className="settings-panel">
           {/* Header */}
-          <div style={{padding:"16px 20px",borderBottom:"1px solid #1a2e4a",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{padding:"16px 20px",borderBottom:"1px solid #dde4ee",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <Settings size={15} color="#c9a84c"/>
               <span style={{fontWeight:700,fontSize:14}}>Settings</span>
@@ -905,7 +905,7 @@ Respond EXACTLY:
           {/* ── Wealth Target ── */}
           <div className="settings-section">
             <div className="ax-sec" style={{marginBottom:12}}><Target size={11}/> Wealth Target</div>
-            <div style={{fontSize:11,color:"#3d5a7a",marginBottom:12,lineHeight:1.6}}>
+            <div style={{fontSize:11,color:"#6b8299",marginBottom:12,lineHeight:1.6}}>
               Current goal: <b className="ax-mono" style={{color:"#c9a84c",fontSize:13}}>{fmtGoal(goalAmount)}</b> — all progress bars, timelines, and AI analysis are calibrated to this target.
             </div>
             <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap"}}>
@@ -923,7 +923,7 @@ Respond EXACTLY:
             {/* Quick presets */}
             <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
               {[5_000_000,10_000_000,25_000_000,50_000_000,100_000_000].map(v=>(
-                <button key={v} className="ax-btn" style={{fontSize:11,padding:"5px 10px",borderColor:goalAmount===v?"#c9a84c":"#1a2e4a",color:goalAmount===v?"#c9a84c":"#3d5a7a"}}
+                <button key={v} className="ax-btn" style={{fontSize:11,padding:"5px 10px",borderColor:goalAmount===v?"#c9a84c":"#dde4ee",color:goalAmount===v?"#c9a84c":"#6b8299"}}
                   onClick={async()=>{ setGoalAmount(v); await persist("apex-goal",v); flash("Goal updated to "+fmtGoal(v)+"!"); }}>
                   {fmtGoal(v)}
                 </button>
@@ -940,7 +940,7 @@ Respond EXACTLY:
                 <div style={{fontSize:13,fontWeight:600,color:"#ff5252",marginBottom:6}}>
                   ⚠ Confirm Reset: {RESET_OPTS.find(o=>o.id===resetTarget)?.label}
                 </div>
-                <div style={{fontSize:11,color:"#7a9ab8",marginBottom:14,lineHeight:1.6}}>
+                <div style={{fontSize:11,color:"#3d617e",marginBottom:14,lineHeight:1.6}}>
                   {RESET_OPTS.find(o=>o.id===resetTarget)?.sub}. <b style={{color:"#ff5252"}}>This cannot be undone.</b>
                 </div>
                 <div style={{display:"flex",gap:8}}>
@@ -957,11 +957,11 @@ Respond EXACTLY:
                   <button key={opt.id} className={`reset-btn ${opt.danger?"danger":""}`}
                     onClick={()=>setResetTarget(opt.id)}>
                     <div style={{width:30,height:30,borderRadius:7,background:opt.danger?"rgba(255,82,82,.12)":"rgba(255,255,255,.04)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <RotateCcw size={13} color={opt.danger?"#ff5252":"#3d5a7a"}/>
+                      <RotateCcw size={13} color={opt.danger?"#ff5252":"#6b8299"}/>
                     </div>
                     <div>
-                      <div style={{fontWeight:600,color:opt.danger?"#ff5252":"#dde3f0"}}>{opt.label}</div>
-                      <div style={{fontSize:10,color:"#3d5a7a",marginTop:2}}>{opt.sub}</div>
+                      <div style={{fontWeight:600,color:opt.danger?"#ff5252":"#111827"}}>{opt.label}</div>
+                      <div style={{fontSize:10,color:"#6b8299",marginTop:2}}>{opt.sub}</div>
                     </div>
                   </button>
                 ))}
@@ -970,7 +970,7 @@ Respond EXACTLY:
           </div>
 
           {/* Footer */}
-          <div style={{padding:"12px 20px",fontSize:10,color:"#2a4060",borderTop:"1px solid #1a2e4a"}}>
+          <div style={{padding:"12px 20px",fontSize:10,color:"#c0cdd9",borderTop:"1px solid #dde4ee"}}>
             APEX v4 · All data stored locally in your browser · {entries.length} monthly snapshots · {goals.length} goals
           </div>
         </div>
@@ -980,7 +980,7 @@ Respond EXACTLY:
 
   if(booting) return(
     <div className="apex" style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,color:"#3d5a7a",fontSize:13}}><Loader size={16} className="spinning"/> Loading APEX...</div>
+      <div style={{display:"flex",alignItems:"center",gap:10,color:"#6b8299",fontSize:13}}><Loader size={16} className="spinning"/> Loading APEX...</div>
     </div>
   );
 
@@ -991,8 +991,8 @@ Respond EXACTLY:
         {showSettings && <SettingsModal/>}
         <AppHeader metrics={null} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)}/>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:360,gap:16}}>
-          <Target size={44} color="#1a2e4a"/>
-          <div style={{color:"#3d5a7a",fontSize:14,textAlign:"center",maxWidth:300,lineHeight:1.7}}>
+          <Target size={44} color="#dde4ee"/>
+          <div style={{color:"#6b8299",fontSize:14,textAlign:"center",maxWidth:300,lineHeight:1.7}}>
             {pComplete<60?<>Set up your <span style={{color:"#c9a84c"}}>profile</span> and <span style={{color:"#c9a84c"}}>goals</span>, then add your first monthly snapshot.</>:"Add your first monthly snapshot to begin tracking."}
           </div>
           <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
@@ -1031,7 +1031,7 @@ Respond EXACTLY:
               <div className="avatar" style={{width:46,height:46,fontSize:15}}>{initials(profile.name)}</div>
               <div style={{flex:1}}>
                 <div style={{fontWeight:600,fontSize:14}}>{profile.name||"Your Profile"}</div>
-                <div style={{fontSize:11,color:"#3d5a7a",marginTop:2,display:"flex",gap:14,flexWrap:"wrap"}}>
+                <div style={{fontSize:11,color:"#6b8299",marginTop:2,display:"flex",gap:14,flexWrap:"wrap"}}>
                   {profile.age&&<span>Age {profile.age}{profile.retirementAge?` · ${profile.retirementAge-profile.age}y to retire`:""}</span>}
                   {riskOpt&&<span style={{color:riskOpt.color}}>● {riskOpt.label}</span>}
                   {(profile.dependents.children>0||profile.dependents.spouse||profile.dependents.parents>0)&&<span><Users size={10} style={{verticalAlign:"middle"}}/> {[profile.dependents.spouse&&"Spouse",profile.dependents.children>0&&`${profile.dependents.children} kid${profile.dependents.children>1?"s":""}`,profile.dependents.parents>0&&`${profile.dependents.parents} parent${profile.dependents.parents>1?"s":""}`].filter(Boolean).join(", ")}</span>}
@@ -1048,7 +1048,7 @@ Respond EXACTLY:
               <div style={{textAlign:"center"}}>
                 <div className="ax-mono ax-gold" style={{fontSize:22,fontWeight:700}}>{fmt(m.netWorth)}</div>
                 <div className="ax-dim" style={{fontSize:10,marginTop:2}}>current net worth</div>
-                {m.monthsToGoal&&<div style={{marginTop:6,fontSize:11,color:"#3d5a7a",lineHeight:1.5}}>~{m.monthsToGoal} months to {fmt(goalAmount)}<br/>at current pace</div>}
+                {m.monthsToGoal&&<div style={{marginTop:6,fontSize:11,color:"#6b8299",lineHeight:1.5}}>~{m.monthsToGoal} months to {fmt(goalAmount)}<br/>at current pace</div>}
               </div>
             </div>
             <div style={{flex:1,display:"flex",flexDirection:"column",gap:10}}>
@@ -1071,10 +1071,10 @@ Respond EXACTLY:
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{top:4,right:8,bottom:0,left:0}}>
                     <defs><linearGradient id="nwg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#c9a84c" stopOpacity={0.25}/><stop offset="95%" stopColor="#c9a84c" stopOpacity={0}/></linearGradient></defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1a2e4a"/>
-                    <XAxis dataKey="month" tick={{fill:"#3d5a7a",fontSize:10}} axisLine={false} tickLine={false}/>
-                    <YAxis tick={{fill:"#3d5a7a",fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>v>=1e7?`₹${(v/1e7).toFixed(1)}Cr`:v>=1e5?`₹${(v/1e5).toFixed(0)}L`:`₹${(v/1000).toFixed(0)}K`}/>
-                    <Tooltip contentStyle={{background:"#0b1628",border:"1px solid #1a2e4a",borderRadius:8,color:"#dde3f0",fontSize:11}} formatter={v=>[`₹${v.toLocaleString("en-IN")}`,""]}/>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+                    <XAxis dataKey="month" tick={{fill:"#6b8299",fontSize:10}} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{fill:"#6b8299",fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>v>=1e7?`₹${(v/1e7).toFixed(1)}Cr`:v>=1e5?`₹${(v/1e5).toFixed(0)}L`:`₹${(v/1000).toFixed(0)}K`}/>
+                    <Tooltip contentStyle={{background:"#ffffff",border:"1px solid #dde4ee",borderRadius:8,color:"#111827",fontSize:11}} formatter={v=>[`₹${v.toLocaleString("en-IN")}`,""]}/>
                     <Area type="monotone" dataKey="netWorth" stroke="#c9a84c" strokeWidth={2} fill="url(#nwg)" dot={{fill:"#c9a84c",r:4,strokeWidth:0}}/>
                   </AreaChart>
                 </ResponsiveContainer>
@@ -1087,23 +1087,23 @@ Respond EXACTLY:
             <div>
               <div className="ax-sec"><Target size={11}/> Goal Tracker</div>
               <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap"}}>
-                <MetricCard label="Goals tracked" value={goals.length} color="#dde3f0"/>
+                <MetricCard label="Goals tracked" value={goals.length} color="#111827"/>
                 {avgProb!=null&&<MetricCard label="Avg MC probability" value={`${avgProb}%`} color={probCfg(avgProb).color}/>}
                 <MetricCard label="Monthly allocated" value={fmt(totalGoalAlloc)} color="#c9a84c" sub={metrics?`of ${fmt(m.monthlySavings)} savings`:""}/>
               </div>
               {/* Stacked allocation bar */}
               {totalGoalAlloc>0&&m.monthlySavings>0&&(
                 <div style={{marginBottom:12}}>
-                  <div style={{height:8,borderRadius:4,background:"#1a2e4a",overflow:"hidden",display:"flex"}}>
+                  <div style={{height:8,borderRadius:4,background:"#dde4ee",overflow:"hidden",display:"flex"}}>
                     {goals.filter(g=>g.monthlyContrib>0).map(g=>{
                       const cat=GOAL_CATS[g.category]||GOAL_CATS.custom;
                       const w=Math.max(1,(g.monthlyContrib/Math.max(m.monthlySavings,totalGoalAlloc))*100);
                       return <div key={g.id} style={{width:`${w}%`,background:cat.color,opacity:.8}} title={`${g.name}: ${fmt(g.monthlyContrib)}/mo`}/>;
                     })}
                   </div>
-                  <div style={{display:"flex",gap:12,marginTop:6,flexWrap:"wrap",fontSize:10,color:"#3d5a7a"}}>
+                  <div style={{display:"flex",gap:12,marginTop:6,flexWrap:"wrap",fontSize:10,color:"#6b8299"}}>
                     {goals.filter(g=>g.monthlyContrib>0).map(g=>{const cat=GOAL_CATS[g.category]||GOAL_CATS.custom;return<span key={g.id} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:cat.color,display:"inline-block"}}/>{g.name} {fmt(g.monthlyContrib)}</span>;})}
-                    {m.monthlySavings-totalGoalAlloc>0&&<span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:"#1a2e4a",display:"inline-block"}}/>Wealth goal {fmt(Math.max(0,m.monthlySavings-totalGoalAlloc))}</span>}
+                    {m.monthlySavings-totalGoalAlloc>0&&<span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:"#dde4ee",display:"inline-block"}}/>Wealth goal {fmt(Math.max(0,m.monthlySavings-totalGoalAlloc))}</span>}
                   </div>
                 </div>
               )}
@@ -1120,11 +1120,11 @@ Respond EXACTLY:
                       </div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>{g.name}</div>
-                        <div style={{height:3,borderRadius:2,background:"#1a2e4a",overflow:"hidden"}}><div style={{width:`${corpusPct}%`,height:"100%",background:cat.color,borderRadius:2}}/></div>
-                        <div style={{fontSize:10,color:"#3d5a7a",marginTop:3}}>{fmt(g.currentCorpus)} of {fmt(inflated)} · {yrs}y</div>
+                        <div style={{height:3,borderRadius:2,background:"#dde4ee",overflow:"hidden"}}><div style={{width:`${corpusPct}%`,height:"100%",background:cat.color,borderRadius:2}}/></div>
+                        <div style={{fontSize:10,color:"#6b8299",marginTop:3}}>{fmt(g.currentCorpus)} of {fmt(inflated)} · {yrs}y</div>
                       </div>
                       {cfg&&<div style={{textAlign:"center",flexShrink:0}}><div className="ax-mono" style={{fontSize:18,fontWeight:700,color:cfg.color}}>{p}%</div><div style={{fontSize:9,color:cfg.color}}>{cfg.label}</div></div>}
-                      <ChevronRight size={12} color="#3d5a7a"/>
+                      <ChevronRight size={12} color="#6b8299"/>
                     </div>
                   );
                 })}
@@ -1147,21 +1147,21 @@ Respond EXACTLY:
                       </div>
                       <div style={{flex:1,minWidth:100}}>
                         <div className="ax-label">Comfortable FI (35×)</div>
-                        <div className="ax-mono" style={{fontSize:18,fontWeight:700,color:"#8aa0be"}}>{fmt(fi.fi35)}</div>
+                        <div className="ax-mono" style={{fontSize:18,fontWeight:700,color:"#526a84"}}>{fmt(fi.fi35)}</div>
                       </div>
                     </div>
-                    <div style={{height:6,borderRadius:3,background:"#1a2e4a",overflow:"hidden",marginBottom:6}}>
+                    <div style={{height:6,borderRadius:3,background:"#dde4ee",overflow:"hidden",marginBottom:6}}>
                       <div style={{width:`${Math.min(fi.prog30,100)}%`,height:"100%",background:fi.prog30>=100?"#00d4a4":"#c9a84c",borderRadius:3,transition:"width .9s ease"}}/>
                     </div>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#3d5a7a"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#6b8299"}}>
                       <span>Investable {fmt(fi.investableNW)} · <b style={{color:fi.prog30>=100?"#00d4a4":"#c9a84c"}}>{fi.prog30.toFixed(1)}% to FI</b></span>
                       <span>Year-1 withdrawal: {fi.withdrawalRate.toFixed(2)}%</span>
                     </div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{fontSize:10,color:"#3d5a7a"}}>Inflation-adj annual expense</div>
-                    <div className="ax-mono" style={{fontSize:16,fontWeight:700,color:"#dde3f0"}}>{fmt(fi.inflatedAnnual)}</div>
-                    <div style={{fontSize:10,color:"#3d5a7a",marginTop:2}}>at {fiPlan.inflationRate}% p.a. in {fiPlan.yearsToRetirement}y</div>
+                    <div style={{fontSize:10,color:"#6b8299"}}>Inflation-adj annual expense</div>
+                    <div className="ax-mono" style={{fontSize:16,fontWeight:700,color:"#111827"}}>{fmt(fi.inflatedAnnual)}</div>
+                    <div style={{fontSize:10,color:"#6b8299",marginTop:2}}>at {fiPlan.inflationRate}% p.a. in {fiPlan.yearsToRetirement}y</div>
                     <div style={{marginTop:6,fontSize:10,color:"#c9a84c",display:"flex",alignItems:"center",gap:3,justifyContent:"flex-end"}}>View FI Plan <ChevronRight size={10}/></div>
                   </div>
                 </div>
@@ -1199,8 +1199,8 @@ Respond EXACTLY:
                         return(
                           <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
                             <Icon size={10} color={c} style={{flexShrink:0}}/>
-                            <span style={{fontSize:10,color:"#3d5a7a",width:90,flexShrink:0}}>{label}</span>
-                            <div style={{flex:1,height:4,background:"#1a2e4a",borderRadius:2,overflow:"hidden"}}>
+                            <span style={{fontSize:10,color:"#6b8299",width:90,flexShrink:0}}>{label}</span>
+                            <div style={{flex:1,height:4,background:"#dde4ee",borderRadius:2,overflow:"hidden"}}>
                               <div style={{width:`${score}%`,height:"100%",background:c,borderRadius:2}}/>
                             </div>
                             <span className="ax-mono" style={{fontSize:10,color:c,width:30,textAlign:"right"}}>{score}%</span>
@@ -1209,7 +1209,7 @@ Respond EXACTLY:
                       })}
                     </div>
                   </div>
-                  <ChevronRight size={13} color="#3d5a7a" style={{flexShrink:0}}/>
+                  <ChevronRight size={13} color="#6b8299" style={{flexShrink:0}}/>
                 </div>
               </div>
             </div>
@@ -1225,7 +1225,7 @@ Respond EXACTLY:
                     <div style={{width:36,height:36,borderRadius:8,background:`${u.color}18`,border:`1px solid ${u.color}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Flag size={14} color={u.color}/></div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:600}}>{ev.label}</div>
-                      <div style={{fontSize:11,color:"#3d5a7a",marginTop:2}}>{ev.year} · {yrs<=0?"This year":`${yrs}y away`}</div>
+                      <div style={{fontSize:11,color:"#6b8299",marginTop:2}}>{ev.year} · {yrs<=0?"This year":`${yrs}y away`}</div>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       {ev.cost>0&&<div className="ax-mono" style={{fontSize:15,fontWeight:700,color:u.color}}>{fmt(ev.cost)}</div>}
@@ -1252,8 +1252,8 @@ Respond EXACTLY:
             <div>
               <div className="ax-sec"><Brain size={11}/> Latest APEX Advisory</div>
               <div className="ax-card" style={{cursor:"pointer"}} onClick={()=>setTab("advisor")}>
-                <div style={{fontSize:10,color:"#3d5a7a",marginBottom:7}}>{advice[0].date} · {advice[0].type} · {fmt(advice[0].netWorthSnapshot)}</div>
-                <div style={{fontSize:12,color:"#7a9ab8",lineHeight:1.65,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical"}}>{advice[0].content.replace(/\*\*/g,"").substring(0,220)}…</div>
+                <div style={{fontSize:10,color:"#6b8299",marginBottom:7}}>{advice[0].date} · {advice[0].type} · {fmt(advice[0].netWorthSnapshot)}</div>
+                <div style={{fontSize:12,color:"#3d617e",lineHeight:1.65,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical"}}>{advice[0].content.replace(/\*\*/g,"").substring(0,220)}…</div>
                 <div style={{marginTop:9,display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#c9a84c"}}>View full report <ChevronRight size={11}/></div>
               </div>
             </div>
@@ -1292,7 +1292,7 @@ Respond EXACTLY:
         {/* MC explanation */}
         <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.15)",borderRadius:10,padding:"10px 14px",display:"flex",gap:10,alignItems:"flex-start"}}>
           <Sigma size={14} color="#c9a84c" style={{flexShrink:0,marginTop:1}}/>
-          <div style={{fontSize:11,color:"#8aa0be",lineHeight:1.6}}>
+          <div style={{fontSize:11,color:"#526a84",lineHeight:1.6}}>
             <b style={{color:"#c9a84c"}}>Monte Carlo simulation</b> — Each goal runs {MC_SIMS} Geometric Brownian Motion paths with log-normal return draws (Ito-corrected). Probability = % of paths where corpus reaches the inflation-adjusted target. Step-up SIP contributions grow annually per the goal's step-up rate. Target amounts in today's money; APEX inflates to target year.
           </div>
         </div>
@@ -1309,8 +1309,8 @@ Respond EXACTLY:
             ))}
           </div>
         ):(
-          <div style={{textAlign:"center",padding:40,color:"#3d5a7a"}}>
-            <Target size={36} color="#1a2e4a" style={{margin:"0 auto 12px"}}/>
+          <div style={{textAlign:"center",padding:40,color:"#6b8299"}}>
+            <Target size={36} color="#dde4ee" style={{margin:"0 auto 12px"}}/>
             <div style={{fontSize:13}}>No goals yet. Add your first financial goal below.</div>
           </div>
         )}
@@ -1365,11 +1365,11 @@ Respond EXACTLY:
               const inflated=calcInflated(addGoalForm.targetAmount,addGoalForm.inflationRate,yrs);
               const needed=monthlyNeeded(addGoalForm.currentCorpus,inflated,yrs,addGoalForm.expectedReturn,addGoalForm.stepUpPct||0);
               return(
-                <div style={{padding:"10px 12px",background:"#080f1e",borderRadius:9,fontSize:11,color:"#3d5a7a",marginBottom:12,display:"flex",gap:14,flexWrap:"wrap"}}>
-                  <span>Inflation-adj target <b style={{color:"#dde3f0"}}>{fmt(inflated)}</b></span>
+                <div style={{padding:"10px 12px",background:"#f8fafc",borderRadius:9,fontSize:11,color:"#6b8299",marginBottom:12,display:"flex",gap:14,flexWrap:"wrap"}}>
+                  <span>Inflation-adj target <b style={{color:"#111827"}}>{fmt(inflated)}</b></span>
                   <span>Monthly needed{(addGoalForm.stepUpPct||0)>0?` (yr-1, ${addGoalForm.stepUpPct}% step-up)`:""} <b style={{color:"#c9a84c"}}>{fmt(needed)}/mo</b></span>
                   <span>Gap <b style={{color:needed>addGoalForm.monthlyContrib?"#ff8c42":"#00d4a4"}}>{fmt(Math.max(0,needed-addGoalForm.monthlyContrib))}/mo</b></span>
-                  <span>Volatility assumption <b style={{color:"#8aa0be"}}>{goalVol(addGoalForm.expectedReturn)}% σ</b></span>
+                  <span>Volatility assumption <b style={{color:"#526a84"}}>{goalVol(addGoalForm.expectedReturn)}% σ</b></span>
                 </div>
               );
             })()}
@@ -1385,8 +1385,8 @@ Respond EXACTLY:
         )}
 
         {/* Probability legend */}
-        <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:10,color:"#3d5a7a",borderTop:"1px solid #1a2e4a",paddingTop:12}}>
-          <span style={{color:"#8aa0be",fontWeight:600}}>MC probability scale:</span>
+        <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:10,color:"#6b8299",borderTop:"1px solid #dde4ee",paddingTop:12}}>
+          <span style={{color:"#526a84",fontWeight:600}}>MC probability scale:</span>
           {PROB_CONFIG.map(c=><span key={c.label} style={{display:"flex",alignItems:"center",gap:5,color:c.color}}><span style={{width:8,height:8,borderRadius:"50%",background:c.color,display:"inline-block"}}/>{c.label} (≥{c.min}%)</span>)}
         </div>
       </div>
@@ -1407,19 +1407,19 @@ Respond EXACTLY:
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
 
           {/* Source attribution */}
-          <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.15)",borderRadius:10,padding:"10px 14px",fontSize:11,color:"#8aa0be",lineHeight:1.6}}>
+          <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.15)",borderRadius:10,padding:"10px 14px",fontSize:11,color:"#526a84",lineHeight:1.6}}>
             <b style={{color:"#c9a84c"}}>Framework:</b> M Pattabiraman (freefincal.com) — 30× corpus formula, lifestyle inflation at 7–8%, savings benchmarked to expenses, bucket strategy. All amounts in INR (₹).
           </div>
 
           {/* ── FI NUMBER CALCULATOR ── */}
           <div className="ax-card">
             <div className="ax-sec"><Target size={11}/> FI Number Calculator</div>
-            <div style={{fontSize:11,color:"#3d5a7a",marginBottom:14,lineHeight:1.7}}>
-              Enter only essential couple expenses today — <b style={{color:"#8aa0be"}}>exclude EMIs</b> (gone at retirement), <b style={{color:"#8aa0be"}}>children's fees</b> (independent by then), and <b style={{color:"#8aa0be"}}>parents' support</b> (may not be needed). Use <b style={{color:"#c9a84c"}}>7% lifestyle inflation</b>, not government CPI of 4%.
+            <div style={{fontSize:11,color:"#6b8299",marginBottom:14,lineHeight:1.7}}>
+              Enter only essential couple expenses today — <b style={{color:"#526a84"}}>exclude EMIs</b> (gone at retirement), <b style={{color:"#526a84"}}>children's fees</b> (independent by then), and <b style={{color:"#526a84"}}>parents' support</b> (may not be needed). Use <b style={{color:"#c9a84c"}}>7% lifestyle inflation</b>, not government CPI of 4%.
             </div>
             <div className="frow">
               <div>
-                <label className="ax-label">Essential monthly expenses today (₹) <span style={{color:"#3d5a7a"}}>couple only</span></label>
+                <label className="ax-label">Essential monthly expenses today (₹) <span style={{color:"#6b8299"}}>couple only</span></label>
                 <input className="ax-input" type="number" min="0" value={fiPlan.essentialMonthly||""} onChange={e=>updFI("essentialMonthly",parseFloat(e.target.value)||0)} placeholder="e.g. 50000"/>
               </div>
               <div>
@@ -1436,14 +1436,14 @@ Respond EXACTLY:
                   const sel=fiPlan.inflationRate===o.v;
                   return(
                     <button key={o.v} className="fi-multiple-btn" onClick={()=>updFI("inflationRate",o.v)}
-                      style={{borderColor:sel?"#c9a84c":"#1a2e4a",background:sel?"rgba(201,168,76,.1)":"#080f1e"}}>
-                      <div className="ax-mono" style={{fontSize:16,fontWeight:700,color:sel?"#c9a84c":"#7a9ab8"}}>{o.label}</div>
-                      <div style={{fontSize:10,color:sel?"#c9a84c":"#3d5a7a",marginTop:2}}>{o.desc}</div>
+                      style={{borderColor:sel?"#c9a84c":"#dde4ee",background:sel?"rgba(201,168,76,.1)":"#f8fafc"}}>
+                      <div className="ax-mono" style={{fontSize:16,fontWeight:700,color:sel?"#c9a84c":"#3d617e"}}>{o.label}</div>
+                      <div style={{fontSize:10,color:sel?"#c9a84c":"#6b8299",marginTop:2}}>{o.desc}</div>
                     </button>
                   );
                 })}
               </div>
-              <div style={{fontSize:10,color:"#3d5a7a",marginTop:6}}>Government CPI (~4%) is dal-chawal inflation. Your lifestyle runs at 7–8%. The difference over 15 years is enormous.</div>
+              <div style={{fontSize:10,color:"#6b8299",marginTop:6}}>Government CPI (~4%) is dal-chawal inflation. Your lifestyle runs at 7–8%. The difference over 15 years is enormous.</div>
             </div>
 
             {/* FI Multiple selector */}
@@ -1454,9 +1454,9 @@ Respond EXACTLY:
                   const sel=fiPlan.fiMultiple===o.v;
                   return(
                     <button key={o.v} className="fi-multiple-btn" onClick={()=>updFI("fiMultiple",o.v)}
-                      style={{borderColor:sel?o.color:"#1a2e4a",background:sel?`${o.color}10`:"#080f1e"}}>
-                      <div className="ax-mono" style={{fontSize:16,fontWeight:700,color:sel?o.color:"#7a9ab8"}}>{o.label}</div>
-                      <div style={{fontSize:10,color:sel?o.color:"#3d5a7a",marginTop:2}}>{o.desc}</div>
+                      style={{borderColor:sel?o.color:"#dde4ee",background:sel?`${o.color}10`:"#f8fafc"}}>
+                      <div className="ax-mono" style={{fontSize:16,fontWeight:700,color:sel?o.color:"#3d617e"}}>{o.label}</div>
+                      <div style={{fontSize:10,color:sel?o.color:"#6b8299",marginTop:2}}>{o.desc}</div>
                     </button>
                   );
                 })}
@@ -1465,12 +1465,12 @@ Respond EXACTLY:
 
             {/* Results */}
             {fi && (
-              <div style={{background:"#080f1e",border:"1px solid #1a2e4a",borderRadius:10,padding:16}}>
+              <div style={{background:"#f8fafc",border:"1px solid #dde4ee",borderRadius:10,padding:16}}>
                 <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:14}}>
                   <div style={{flex:1,minWidth:130}}>
                     <div className="ax-label">Inflation-adjusted annual expense</div>
-                    <div className="ax-mono" style={{fontSize:20,fontWeight:700,color:"#dde3f0"}}>{fmt(fi.inflatedAnnual)}</div>
-                    <div style={{fontSize:10,color:"#3d5a7a",marginTop:2}}>in {fiPlan.yearsToRetirement} years at {fiPlan.inflationRate}% p.a.</div>
+                    <div className="ax-mono" style={{fontSize:20,fontWeight:700,color:"#111827"}}>{fmt(fi.inflatedAnnual)}</div>
+                    <div style={{fontSize:10,color:"#6b8299",marginTop:2}}>in {fiPlan.yearsToRetirement} years at {fiPlan.inflationRate}% p.a.</div>
                   </div>
                   <div style={{flex:1,minWidth:130}}>
                     <div className="ax-label">FI Threshold (30×)</div>
@@ -1488,29 +1488,29 @@ Respond EXACTLY:
 
                 {/* Progress to FI30 */}
                 <div style={{marginBottom:8}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#3d5a7a",marginBottom:5}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#6b8299",marginBottom:5}}>
                     <span>Progress to FI threshold (30×)</span>
                     <span className="ax-mono" style={{color:fi.prog30>=100?"#00d4a4":"#c9a84c",fontWeight:700}}>{fi.prog30.toFixed(1)}%</span>
                   </div>
-                  <div style={{height:8,borderRadius:4,background:"#1a2e4a",overflow:"hidden",position:"relative"}}>
+                  <div style={{height:8,borderRadius:4,background:"#dde4ee",overflow:"hidden",position:"relative"}}>
                     <div style={{width:`${Math.min(fi.prog30,100)}%`,height:"100%",background:fi.prog30>=100?"#00d4a4":"#c9a84c",borderRadius:4,transition:"width .9s ease"}}/>
                     {/* 35x and 40x markers */}
                     <div style={{position:"absolute",top:0,left:`${Math.min(100/35*30,100)}%`,width:2,height:"100%",background:"rgba(0,212,164,.5)"}}/>
                   </div>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#3d5a7a",marginTop:3}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#6b8299",marginTop:3}}>
                     <span>Investable {fmt(fi.investableNW)} · Total NW {fmt(fi.totalNW)}</span>
                     <span>Gap: {fmt(fi.gap30)}</span>
                     <span>FI30× {fmt(fi.fi30)}</span>
                   </div>
                 </div>
 
-                <div style={{display:"flex",gap:14,fontSize:11,color:"#3d5a7a",flexWrap:"wrap",borderTop:"1px solid #1a2e4a",paddingTop:10}}>
+                <div style={{display:"flex",gap:14,fontSize:11,color:"#6b8299",flexWrap:"wrap",borderTop:"1px solid #dde4ee",paddingTop:10}}>
                   <span>Year-1 withdrawal rate <b style={{color:"#c9a84c"}}>{fi.withdrawalRate.toFixed(2)}%</b></span>
-                  <span style={{color:"#2a4060"}}>·</span>
+                  <span style={{color:"#c0cdd9"}}>·</span>
                   <span>Rises with inflation each year (not constant like US 4% rule)</span>
                 </div>
                 {fi.totalNW !== fi.investableNW && (
-                  <div style={{marginTop:10,fontSize:11,color:"#8aa0be",background:"rgba(138,160,190,.06)",borderRadius:8,padding:"8px 12px",lineHeight:1.6,borderLeft:"2px solid #3d5a7a"}}>
+                  <div style={{marginTop:10,fontSize:11,color:"#526a84",background:"rgba(138,160,190,.06)",borderRadius:8,padding:"8px 12px",lineHeight:1.6,borderLeft:"2px solid #6b8299"}}>
                     <b style={{color:"#c9a84c"}}>Investable NW {fmt(fi.investableNW)}</b> vs Total NW {fmt(fi.totalNW)} — real estate ({fmt(entries.length?entries[entries.length-1].investments.realEstate||0:0)}) is illiquid and excluded. NPS 40% annuity portion locked.
                   </div>
                 )}
@@ -1521,27 +1521,27 @@ Respond EXACTLY:
                 )}
               </div>
             )}
-            {!fiPlan.essentialMonthly && <div style={{fontSize:11,color:"#3d5a7a",textAlign:"center",padding:12}}>Enter your essential monthly expenses above to calculate your FI number.</div>}
+            {!fiPlan.essentialMonthly && <div style={{fontSize:11,color:"#6b8299",textAlign:"center",padding:12}}>Enter your essential monthly expenses above to calculate your FI number.</div>}
           </div>
 
           {/* ── SAVINGS RATE HEALTH ── */}
           <div className="ax-card">
             <div className="ax-sec"><DollarSign size={11}/> Savings Rate Health (Pattu Benchmark)</div>
-            <div style={{fontSize:11,color:"#3d5a7a",marginBottom:12,lineHeight:1.7}}>
+            <div style={{fontSize:11,color:"#6b8299",marginBottom:12,lineHeight:1.7}}>
               The benchmark shifts in your 30s: stop anchoring to salary %, start anchoring to essential expenses. Target: <b style={{color:"#c9a84c"}}>invest ≥50% of essential monthly expenses</b> (including employer EPF/NPS). With a home loan active: minimum 20–30%.
             </div>
             {fiPlan.essentialMonthly > 0 && metrics ? (
               <div>
                 <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:12}}>
-                  <div style={{flex:1,minWidth:120,background:"#080f1e",borderRadius:9,padding:"10px 14px",border:"1px solid #1a2e4a"}}>
+                  <div style={{flex:1,minWidth:120,background:"#f8fafc",borderRadius:9,padding:"10px 14px",border:"1px solid #dde4ee"}}>
                     <div className="ax-label">Essential expenses/mo</div>
                     <div className="ax-mono" style={{fontSize:18,fontWeight:700}}>{fmt(fiPlan.essentialMonthly)}</div>
                   </div>
-                  <div style={{flex:1,minWidth:120,background:"#080f1e",borderRadius:9,padding:"10px 14px",border:"1px solid #1a2e4a"}}>
+                  <div style={{flex:1,minWidth:120,background:"#f8fafc",borderRadius:9,padding:"10px 14px",border:"1px solid #dde4ee"}}>
                     <div className="ax-label">Benchmark (≥50%)</div>
                     <div className="ax-mono" style={{fontSize:18,fontWeight:700,color:"#c9a84c"}}>{fmt(savBenchmark)}/mo</div>
                   </div>
-                  <div style={{flex:1,minWidth:120,background:"#080f1e",borderRadius:9,padding:"10px 14px",border:`1px solid ${meetsBenchmark?"#00d4a430":"#ff525230"}`}}>
+                  <div style={{flex:1,minWidth:120,background:"#f8fafc",borderRadius:9,padding:"10px 14px",border:`1px solid ${meetsBenchmark?"#00d4a430":"#ff525230"}`}}>
                     <div className="ax-label">Your monthly savings</div>
                     <div className="ax-mono" style={{fontSize:18,fontWeight:700,color:meetsBenchmark?"#00d4a4":"#ff5252"}}>{fmt(metrics.monthlySavings)}/mo</div>
                   </div>
@@ -1556,15 +1556,15 @@ Respond EXACTLY:
                 </div>
               </div>
             ) : (
-              <div style={{fontSize:11,color:"#3d5a7a"}}>Enter essential expenses above and add a monthly snapshot to see your savings benchmark.</div>
+              <div style={{fontSize:11,color:"#6b8299"}}>Enter essential expenses above and add a monthly snapshot to see your savings benchmark.</div>
             )}
           </div>
 
           {/* ── BUCKET STRATEGY ── */}
           <div className="ax-card">
             <div className="ax-sec"><Wallet size={11}/> Retirement Bucket Strategy</div>
-            <div style={{fontSize:11,color:"#3d5a7a",marginBottom:14,lineHeight:1.7}}>
-              Purpose is <b style={{color:"#8aa0be"}}>behavioral, not efficiency</b>. Knowing Bucket 1 is safe for 2–3 years lets you ignore market noise and not panic-sell equities in downturns.
+            <div style={{fontSize:11,color:"#6b8299",marginBottom:14,lineHeight:1.7}}>
+              Purpose is <b style={{color:"#526a84"}}>behavioral, not efficiency</b>. Knowing Bucket 1 is safe for 2–3 years lets you ignore market noise and not panic-sell equities in downturns.
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {[
@@ -1577,12 +1577,12 @@ Respond EXACTLY:
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <div style={{width:28,height:28,borderRadius:7,background:`${b.color}18`,border:`1px solid ${b.color}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:13,fontWeight:700,color:b.color}}>{b.n}</div>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:12,fontWeight:600,color:"#dde3f0"}}>{b.label}</div>
-                      <div style={{fontSize:10,color:"#3d5a7a",marginTop:1}}>{b.target}</div>
+                      <div style={{fontSize:12,fontWeight:600,color:"#111827"}}>{b.label}</div>
+                      <div style={{fontSize:10,color:"#6b8299",marginTop:1}}>{b.target}</div>
                     </div>
                     <div className="ax-mono" style={{fontSize:13,fontWeight:700,color:b.color,flexShrink:0}}>{b.amount}</div>
                   </div>
-                  <div style={{fontSize:11,color:"#7a9ab8",lineHeight:1.6,paddingLeft:38}}>{b.desc}</div>
+                  <div style={{fontSize:11,color:"#3d617e",lineHeight:1.6,paddingLeft:38}}>{b.desc}</div>
                 </div>
               ))}
             </div>
@@ -1595,14 +1595,14 @@ Respond EXACTLY:
           {/* ── REBALANCING CHECK ── */}
           <div className="ax-card">
             <div className="ax-sec"><TrendingUp size={11}/> Asset Allocation & Rebalancing</div>
-            <div style={{fontSize:11,color:"#3d5a7a",marginBottom:14,lineHeight:1.7}}>
-              Pattu rule: <b style={{color:"#8aa0be"}}>don't rebalance annually</b>. Trigger only when drift exceeds 5%. Strongest signal: an asset class has had a big run — lock in the gain. Don't let LTCG tax anxiety paralise you.
+            <div style={{fontSize:11,color:"#6b8299",marginBottom:14,lineHeight:1.7}}>
+              Pattu rule: <b style={{color:"#526a84"}}>don't rebalance annually</b>. Trigger only when drift exceeds 5%. Strongest signal: an asset class has had a big run — lock in the gain. Don't let LTCG tax anxiety paralise you.
             </div>
             <div className="frow">
               <div>
                 <label className="ax-label">Target equity allocation (%)</label>
                 <input className="ax-input" type="number" min="0" max="100" value={fiPlan.targetEquityPct} onChange={e=>updFI("targetEquityPct",parseInt(e.target.value)||60)}/>
-                <div style={{fontSize:10,color:"#3d5a7a",marginTop:4}}>Replace 30% equity with bonds = lower risk, small return hit. Pattu's "free lunch".</div>
+                <div style={{fontSize:10,color:"#6b8299",marginTop:4}}>Replace 30% equity with bonds = lower risk, small return hit. Pattu's "free lunch".</div>
               </div>
               <div>
                 <label className="ax-label">Last rebalanced</label>
@@ -1610,11 +1610,11 @@ Respond EXACTLY:
               </div>
             </div>
             {entries.length > 0 && (
-              <div style={{marginTop:12,padding:"12px 14px",borderRadius:10,background:"#080f1e",border:`1px solid ${rb.needsRebalancing?"#ff8c42":"#1a2e4a"}`}}>
+              <div style={{marginTop:12,padding:"12px 14px",borderRadius:10,background:"#f8fafc",border:`1px solid ${rb.needsRebalancing?"#ff8c42":"#dde4ee"}`}}>
                 <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:rb.needsRebalancing?10:0}}>
-                  <span style={{fontSize:11,color:"#3d5a7a"}}>Current equity: <b style={{color:rb.needsRebalancing?"#ff8c42":"#dde3f0"}}>{rb.cur.toFixed(1)}%</b></span>
-                  <span style={{fontSize:11,color:"#3d5a7a"}}>Target: <b style={{color:"#dde3f0"}}>{fiPlan.targetEquityPct}%</b></span>
-                  <span style={{fontSize:11,color:"#3d5a7a"}}>Drift: <b style={{color:rb.needsRebalancing?"#ff8c42":"#00d4a4"}}>{rb.drift>0?"+":""}{rb.drift.toFixed(1)}%</b></span>
+                  <span style={{fontSize:11,color:"#6b8299"}}>Current equity: <b style={{color:rb.needsRebalancing?"#ff8c42":"#111827"}}>{rb.cur.toFixed(1)}%</b></span>
+                  <span style={{fontSize:11,color:"#6b8299"}}>Target: <b style={{color:"#111827"}}>{fiPlan.targetEquityPct}%</b></span>
+                  <span style={{fontSize:11,color:"#6b8299"}}>Drift: <b style={{color:rb.needsRebalancing?"#ff8c42":"#00d4a4"}}>{rb.drift>0?"+":""}{rb.drift.toFixed(1)}%</b></span>
                   <span className="ins-status" style={{background:rb.needsRebalancing?"rgba(255,140,66,.1)":"rgba(0,212,164,.1)",color:rb.needsRebalancing?"#ff8c42":"#00d4a4",border:`1px solid ${rb.needsRebalancing?"#ff8c4230":"#00d4a430"}`}}>
                     {rb.needsRebalancing?"Rebalance now":"Balanced"}
                   </span>
@@ -1624,11 +1624,11 @@ Respond EXACTLY:
                     Drift of {rb.abs.toFixed(1)}% exceeds the 5% trigger. Trim the outperforming asset class and add to the lagging one. The goal is not maximum growth — it's gradual growth without violent swings.
                   </div>
                 )}
-                <div style={{fontSize:10,color:"#3d5a7a",marginTop:rb.needsRebalancing?6:0}}>
+                <div style={{fontSize:10,color:"#6b8299",marginTop:rb.needsRebalancing?6:0}}>
                   Equity tracked: stocks + mutual funds. Debt: real estate + gold + EPF + PPF + NPS + FD + SGB. Crypto classified separately (speculative).
                 </div>
-                <div style={{fontSize:10,color:"#3d5a7a",marginTop:4,lineHeight:1.5}}>
-                  <b style={{color:"#8aa0be"}}>LTCG note:</b> Equity gains &gt;₹1L/year taxed at 10% (LTCG). Don't let tax anxiety prevent necessary rebalancing — a 5%+ drift costs more in long-term risk than tax. Use SIP top-up to debt instead of selling equity where possible.
+                <div style={{fontSize:10,color:"#6b8299",marginTop:4,lineHeight:1.5}}>
+                  <b style={{color:"#526a84"}}>LTCG note:</b> Equity gains &gt;₹1L/year taxed at 10% (LTCG). Don't let tax anxiety prevent necessary rebalancing — a 5%+ drift costs more in long-term risk than tax. Use SIP top-up to debt instead of selling equity where possible.
                 </div>
               </div>
             )}
@@ -1642,16 +1642,16 @@ Respond EXACTLY:
                 <div key={i} className="insight-card" style={{borderLeftColor:ins.color}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
                     <span className="insight-tag" style={{background:`${ins.color}18`,color:ins.color}}>{ins.tag}</span>
-                    <span style={{fontSize:12,fontWeight:600,color:"#dde3f0"}}>{ins.title}</span>
+                    <span style={{fontSize:12,fontWeight:600,color:"#111827"}}>{ins.title}</span>
                   </div>
-                  <div style={{fontSize:11.5,color:"#8aa0be",lineHeight:1.65}}>{ins.body}</div>
+                  <div style={{fontSize:11.5,color:"#526a84",lineHeight:1.65}}>{ins.body}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={{fontSize:11,color:"#3d5a7a",borderTop:"1px solid #1a2e4a",paddingTop:12,lineHeight:1.7}}>
-            <b style={{color:"#8aa0be"}}>Source:</b> M Pattabiraman, freefincal.com — 38-min interview on building a ₹10 crore corpus. All amounts in INR (₹). Run the AI Advisor for a personalised FI trajectory analysis using these benchmarks.
+          <div style={{fontSize:11,color:"#6b8299",borderTop:"1px solid #dde4ee",paddingTop:12,lineHeight:1.7}}>
+            <b style={{color:"#526a84"}}>Source:</b> M Pattabiraman, freefincal.com — 38-min interview on building a ₹10 crore corpus. All amounts in INR (₹). Run the AI Advisor for a personalised FI trajectory analysis using these benchmarks.
           </div>
         </div>
       </div>
@@ -1676,7 +1676,7 @@ Respond EXACTLY:
               </div>
               <div>
                 <div style={{fontWeight:600,fontSize:13}}>{title}</div>
-                {recommended>0&&<div style={{fontSize:10,color:"#3d5a7a",marginTop:1}}>Current {fmt(current)} · Recommended {fmt(recommended)}</div>}
+                {recommended>0&&<div style={{fontSize:10,color:"#6b8299",marginTop:1}}>Current {fmt(current)} · Recommended {fmt(recommended)}</div>}
               </div>
             </div>
             <span className="ins-status" style={{background:`${c}12`,color:c,border:`1px solid ${c}30`}}>{statusLabel} {score}%</span>
@@ -1690,7 +1690,7 @@ Respond EXACTLY:
             </div>
           )}
           {children}
-          {insight&&<div style={{fontSize:11,color:"#8aa0be",background:"#080f1e",borderRadius:8,padding:"8px 12px",lineHeight:1.6,borderLeft:`2px solid ${c}40`}}>{insight}</div>}
+          {insight&&<div style={{fontSize:11,color:"#526a84",background:"#f8fafc",borderRadius:8,padding:"8px 12px",lineHeight:1.6,borderLeft:`2px solid ${c}40`}}>{insight}</div>}
         </div>
       );
     };
@@ -1726,8 +1726,8 @@ Respond EXACTLY:
                   return(
                     <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
                       <Icon size={11} color={c} style={{flexShrink:0}}/>
-                      <span style={{fontSize:10.5,color:"#7a9ab8",width:160,flexShrink:0}}>{label}</span>
-                      <div style={{flex:1,height:5,background:"#1a2e4a",borderRadius:3,overflow:"hidden"}}>
+                      <span style={{fontSize:10.5,color:"#3d617e",width:160,flexShrink:0}}>{label}</span>
+                      <div style={{flex:1,height:5,background:"#dde4ee",borderRadius:3,overflow:"hidden"}}>
                         <div style={{width:`${score}%`,height:"100%",background:c,borderRadius:3,transition:"width .8s ease"}}/>
                       </div>
                       <span className="ax-mono" style={{fontSize:10,color:c,width:34,textAlign:"right",flexShrink:0}}>{score}%</span>
@@ -1736,7 +1736,7 @@ Respond EXACTLY:
                 })}
               </div>
             </div>
-            <div style={{marginTop:14,fontSize:11,color:"#3d5a7a",lineHeight:1.6}}>
+            <div style={{marginTop:14,fontSize:11,color:"#6b8299",lineHeight:1.6}}>
               Protection score weights: Life 35% · Health 30% · Emergency Fund 20% · Disability 10% · Credit Score 5%. Benchmarks: 15× annual income life cover · ₹25L family health · 6× monthly emergency fund.
             </div>
           </div>
@@ -1756,9 +1756,9 @@ Respond EXACTLY:
                 <input className="ax-input" type="number" min="0" value={insurance.otherLifeCover||""} onChange={e=>updIns("otherLifeCover",parseFloat(e.target.value)||0)} placeholder="LIC, ULIP, etc."/>
               </div>
             </div>
-            {p.annualIncome>0&&<div style={{fontSize:11,color:"#3d5a7a",display:"flex",gap:14,flexWrap:"wrap"}}>
-              <span>Annual income <b style={{color:"#dde3f0"}}>{fmt(p.annualIncome)}</b></span>
-              <span>Recommended ({p.hasDep?"15×":"10×"}) <b style={{color:"#dde3f0"}}>{fmt(p.recLife)}</b></span>
+            {p.annualIncome>0&&<div style={{fontSize:11,color:"#6b8299",display:"flex",gap:14,flexWrap:"wrap"}}>
+              <span>Annual income <b style={{color:"#111827"}}>{fmt(p.annualIncome)}</b></span>
+              <span>Recommended ({p.hasDep?"15×":"10×"}) <b style={{color:"#111827"}}>{fmt(p.recLife)}</b></span>
             </div>}
           </CoverCard>
 
@@ -1795,10 +1795,10 @@ Respond EXACTLY:
             <div><label className="ax-label">Emergency Fund Amount (₹)</label>
               <input className="ax-input" type="number" min="0" value={insurance.emergencyAmount||""} onChange={e=>updIns("emergencyAmount",parseFloat(e.target.value)||0)} placeholder="Liquid cash / FD / liquid fund"/>
             </div>
-            {metrics&&<div style={{fontSize:11,color:"#3d5a7a",display:"flex",gap:14,flexWrap:"wrap"}}>
-              <span>Monthly expenses <b style={{color:"#dde3f0"}}>{fmt(metrics.totalExp)}</b></span>
+            {metrics&&<div style={{fontSize:11,color:"#6b8299",display:"flex",gap:14,flexWrap:"wrap"}}>
+              <span>Monthly expenses <b style={{color:"#111827"}}>{fmt(metrics.totalExp)}</b></span>
               <span>Coverage <b style={{color:p.emMonths>=6?"#00d4a4":p.emMonths>=3?"#c9a84c":"#ff5252"}}>{p.emMonths.toFixed(1)} months</b></span>
-              <span>Target <b style={{color:"#dde3f0"}}>{fmt(p.recEmergency)}</b></span>
+              <span>Target <b style={{color:"#111827"}}>{fmt(p.recEmergency)}</b></span>
             </div>}
           </CoverCard>
 
@@ -1818,7 +1818,7 @@ Respond EXACTLY:
               <div className={`toggle-track ${insurance.groupDisability?"on":""}`}><div className="toggle-knob"/></div>
               <div>
                 <div style={{fontSize:13,fontWeight:500}}>Employer group disability cover</div>
-                <div style={{fontSize:11,color:"#3d5a7a",marginTop:1}}>Employer-provided group disability insurance (counts as ~6 months income replacement)</div>
+                <div style={{fontSize:11,color:"#6b8299",marginTop:1}}>Employer-provided group disability insurance (counts as ~6 months income replacement)</div>
               </div>
             </div>
           </CoverCard>
@@ -1832,7 +1832,7 @@ Respond EXACTLY:
                 </div>
                 <div>
                   <div style={{fontWeight:600,fontSize:13}}>Credit Score (CIBIL / Experian)</div>
-                  <div style={{fontSize:10,color:"#3d5a7a",marginTop:1}}>Affects loan interest rates and borrowing capacity</div>
+                  <div style={{fontSize:10,color:"#6b8299",marginTop:1}}>Affects loan interest rates and borrowing capacity</div>
                 </div>
               </div>
               {insurance.creditScore>0&&(
@@ -1848,10 +1848,10 @@ Respond EXACTLY:
                 <div className="credit-track" style={{marginBottom:6}}>
                   <div className="credit-pin" style={{left:`${((insurance.creditScore-300)/600)*100}%`}}/>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#3d5a7a"}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#6b8299"}}>
                   <span>300 Poor</span><span>600 Fair</span><span>750 Good</span><span>900 Excellent</span>
                 </div>
-                <div style={{marginTop:10,fontSize:11,color:"#8aa0be",lineHeight:1.6}}>
+                <div style={{marginTop:10,fontSize:11,color:"#526a84",lineHeight:1.6}}>
                   {insurance.creditScore>=750?"Excellent score — you qualify for the best loan rates. Maintain by keeping credit utilisation below 30% and paying all EMIs on time.":
                    insurance.creditScore>=700?"Good score — minor improvements will unlock better rates. Avoid new credit applications for 6 months, reduce utilisation.":
                    insurance.creditScore>=650?"Fair score — loan approvals may be difficult or expensive. Check for errors on your CIBIL report. Prioritise clearing outstanding dues.":
@@ -1868,12 +1868,12 @@ Respond EXACTLY:
                 <input className="ax-input" type="text" value={insurance.creditScoreDate} onChange={e=>updIns("creditScoreDate",e.target.value)} placeholder="e.g. Dec 2025"/>
               </div>
             </div>
-            {!insurance.creditScore&&<div style={{fontSize:11,color:"#3d5a7a",lineHeight:1.6}}>Check your free CIBIL score at <b style={{color:"#c9a84c"}}>cibil.com</b> or via your bank app. Scores update monthly.</div>}
+            {!insurance.creditScore&&<div style={{fontSize:11,color:"#6b8299",lineHeight:1.6}}>Check your free CIBIL score at <b style={{color:"#c9a84c"}}>cibil.com</b> or via your bank app. Scores update monthly.</div>}
           </div>
 
           {/* Notes */}
-          <div style={{fontSize:11,color:"#3d5a7a",borderTop:"1px solid #1a2e4a",paddingTop:12,lineHeight:1.7}}>
-            <b style={{color:"#8aa0be"}}>Note:</b> All amounts in INR (₹). Benchmarks: Life cover = {prot.hasDep?"15×":"10×"} annual income · Health = ₹{prot.recHealth.toLocaleString("en-IN")} total · Emergency = 6× monthly expenses. Run AI Advisor for a personalised insurance action plan.
+          <div style={{fontSize:11,color:"#6b8299",borderTop:"1px solid #dde4ee",paddingTop:12,lineHeight:1.7}}>
+            <b style={{color:"#526a84"}}>Note:</b> All amounts in INR (₹). Benchmarks: Life cover = {prot.hasDep?"15×":"10×"} annual income · Health = ₹{prot.recHealth.toLocaleString("en-IN")} total · Emergency = 6× monthly expenses. Run AI Advisor for a personalised insurance action plan.
           </div>
         </div>
       </div>
@@ -1890,7 +1890,7 @@ Respond EXACTLY:
           <div className="avatar" style={{width:58,height:58,fontSize:20}}>{initials(profile.name)}</div>
           <div style={{flex:1}}>
             <div style={{fontSize:15,fontWeight:700}}>{profile.name||"Your Profile"}</div>
-            <div style={{fontSize:11,color:"#3d5a7a",marginTop:3}}>Profile completeness</div>
+            <div style={{fontSize:11,color:"#6b8299",marginTop:3}}>Profile completeness</div>
             <div className="pbar" style={{width:160,marginTop:6}}><div className="pbar-fill" style={{width:`${pComplete}%`}}/></div>
             <div style={{fontSize:10,color:pComplete===100?"#00d4a4":"#c9a84c",marginTop:4}}>{pComplete}% complete</div>
           </div>
@@ -1902,17 +1902,17 @@ Respond EXACTLY:
             <div><label className="ax-label">Full Name</label><input className="ax-input" value={profile.name} onChange={e=>updP("name",e.target.value)} placeholder="Your name"/></div>
             <div><label className="ax-label">Current Age</label><input className="ax-input" type="number" min="18" max="80" value={profile.age||""} onChange={e=>updP("age",parseInt(e.target.value)||"")} placeholder="e.g. 32"/></div>
             <div><label className="ax-label">Retirement Age</label><input className="ax-input" type="number" min="40" max="80" value={profile.retirementAge||""} onChange={e=>updP("retirementAge",parseInt(e.target.value)||60)} placeholder="e.g. 60"/></div>
-            <div>{profile.age&&profile.retirementAge?(<div style={{background:"#080f1e",border:"1px solid #1a2e4a",borderRadius:8,padding:"10px 14px"}}><div className="ax-label" style={{marginBottom:3}}>Years to retirement</div><div className="ax-mono ax-gold" style={{fontSize:24,fontWeight:700}}>{Math.max(0,profile.retirementAge-profile.age)}</div></div>):(<div style={{fontSize:11,color:"#3d5a7a",display:"flex",alignItems:"center",height:"100%"}}>Fill age + retirement age</div>)}</div>
+            <div>{profile.age&&profile.retirementAge?(<div style={{background:"#f8fafc",border:"1px solid #dde4ee",borderRadius:8,padding:"10px 14px"}}><div className="ax-label" style={{marginBottom:3}}>Years to retirement</div><div className="ax-mono ax-gold" style={{fontSize:24,fontWeight:700}}>{Math.max(0,profile.retirementAge-profile.age)}</div></div>):(<div style={{fontSize:11,color:"#6b8299",display:"flex",alignItems:"center",height:"100%"}}>Fill age + retirement age</div>)}</div>
           </div>
         </div>
         <div className="ax-card">
           <div className="ax-sec">Risk Appetite</div>
           <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
             {RISK_OPTIONS.map(opt=>{const sel=profile.riskAppetite===opt.id;return(
-              <div key={opt.id} className="risk-btn" onClick={()=>updP("riskAppetite",opt.id)} style={{background:sel?opt.bg:"#080f1e",border:`1px solid ${sel?opt.border:"#1a2e4a"}`}}>
-                <div style={{fontSize:13,fontWeight:700,color:sel?opt.color:"#7a9ab8",marginBottom:4}}>{opt.label}</div>
-                <div style={{fontSize:11,color:sel?opt.color:"#3d5a7a",marginBottom:3}}>{opt.desc}</div>
-                <div style={{fontSize:10,color:"#3d5a7a",lineHeight:1.5}}>{opt.detail}</div>
+              <div key={opt.id} className="risk-btn" onClick={()=>updP("riskAppetite",opt.id)} style={{background:sel?opt.bg:"#f8fafc",border:`1px solid ${sel?opt.border:"#dde4ee"}`}}>
+                <div style={{fontSize:13,fontWeight:700,color:sel?opt.color:"#3d617e",marginBottom:4}}>{opt.label}</div>
+                <div style={{fontSize:11,color:sel?opt.color:"#6b8299",marginBottom:3}}>{opt.desc}</div>
+                <div style={{fontSize:10,color:"#6b8299",lineHeight:1.5}}>{opt.detail}</div>
                 {sel&&<div style={{marginTop:8,display:"inline-flex",alignItems:"center",gap:3,fontSize:10,fontWeight:700,color:opt.color}}><CheckCircle size={9}/> Active</div>}
               </div>
             );})}
@@ -1924,11 +1924,11 @@ Respond EXACTLY:
             <Toggle value={profile.dependents.spouse} onChange={v=>updDep("spouse",v)} label="Spouse / Partner" sub="Financially dependent on your income"/>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
               <div className="ax-card" style={{flex:1,minWidth:160,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                <div><div style={{fontSize:13,fontWeight:500}}>Children</div><div style={{fontSize:11,color:"#3d5a7a"}}>Dependent children</div></div>
+                <div><div style={{fontSize:13,fontWeight:500}}>Children</div><div style={{fontSize:11,color:"#6b8299"}}>Dependent children</div></div>
                 <Stepper value={profile.dependents.children} onChange={v=>updDep("children",v)} max={8}/>
               </div>
               <div className="ax-card" style={{flex:1,minWidth:160,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                <div><div style={{fontSize:13,fontWeight:500}}>Parents</div><div style={{fontSize:11,color:"#3d5a7a"}}>Financially dependent</div></div>
+                <div><div style={{fontSize:13,fontWeight:500}}>Parents</div><div style={{fontSize:11,color:"#6b8299"}}>Financially dependent</div></div>
                 <Stepper value={profile.dependents.parents} onChange={v=>updDep("parents",v)} max={4}/>
               </div>
             </div>
@@ -1936,9 +1936,9 @@ Respond EXACTLY:
         </div>
         <div className="ax-card">
           <div className="ax-sec"><Calendar size={11}/> Life Events Calendar</div>
-          <div style={{fontSize:11,color:"#3d5a7a",marginBottom:14,lineHeight:1.6}}>Major upcoming expenses that compete with your wealth goal. APEX factors these into trajectory and alerts.</div>
+          <div style={{fontSize:11,color:"#6b8299",marginBottom:14,lineHeight:1.6}}>Major upcoming expenses that compete with your wealth goal. APEX factors these into trajectory and alerts.</div>
           {profile.lifeEvents.filter(e=>e.label).length>0&&(
-            <div style={{marginBottom:18,padding:"10px 6px 4px",background:"#080f1e",borderRadius:10,border:"1px solid #1a2e4a",overflowX:"auto"}}>
+            <div style={{marginBottom:18,padding:"10px 6px 4px",background:"#f8fafc",borderRadius:10,border:"1px solid #dde4ee",overflowX:"auto"}}>
               <EventTimeline events={profile.lifeEvents} retirementAge={profile.retirementAge} age={profile.age}/>
             </div>
           )}
@@ -1957,7 +1957,7 @@ Respond EXACTLY:
               );})}
             </div>
           )}
-          <div style={{border:"1px dashed #1a2e4a",borderRadius:10,padding:14}}>
+          <div style={{border:"1px dashed #dde4ee",borderRadius:10,padding:14}}>
             <div className="ax-label" style={{marginBottom:10}}>Add Life Event</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 80px 100px auto",gap:8,alignItems:"center"}}>
               <input className="ax-input" value={newEv.label} onChange={e=>setNewEv(n=>({...n,label:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&addEv()} placeholder="e.g. Child's college"/>
@@ -1984,9 +1984,9 @@ Respond EXACTLY:
             <input ref={fileRef} type="file" accept=".pdf,image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(f){setUploadFile(f);parseStatement(f);}}}/>
             {parsingFile?<div style={{display:"flex",alignItems:"center",gap:8,justifyContent:"center",color:"#c9a84c",fontSize:12}}><Loader size={14} className="spinning"/> Parsing with AI...</div>
               :uploadFile?<div style={{color:"#00d4a4",fontSize:12,display:"flex",alignItems:"center",gap:6,justifyContent:"center"}}><CheckCircle size={13}/> {uploadFile.name}</div>
-              :<div style={{color:"#3d5a7a",fontSize:12}}>Drop PDF or image · click to browse<br/><span style={{fontSize:10}}>Bank/investment statements — AI extracts key numbers</span></div>}
+              :<div style={{color:"#6b8299",fontSize:12}}>Drop PDF or image · click to browse<br/><span style={{fontSize:10}}>Bank/investment statements — AI extracts key numbers</span></div>}
           </div>
-          {parsedNote&&<div style={{marginTop:10,fontSize:11,color:"#8aa0be",background:"#080f1e",padding:"8px 12px",borderRadius:8,lineHeight:1.5}}>📋 {parsedNote}</div>}
+          {parsedNote&&<div style={{marginTop:10,fontSize:11,color:"#526a84",background:"#f8fafc",padding:"8px 12px",borderRadius:8,lineHeight:1.5}}>📋 {parsedNote}</div>}
         </div>
         <div className="ax-card">
           <div className="ax-sec" style={{marginBottom:14}}>Snapshot for: {form.label}</div>
@@ -2062,20 +2062,20 @@ Respond EXACTLY:
             {analyzing?<><Loader size={12} className="spinning"/> Analyzing...</>:<><Brain size={12}/> Monthly Deep-Dive</>}
           </button>
           <button className="ax-btn" onClick={()=>runAnalysis("weekly")} disabled={analyzing||!entries.length}><Zap size={12}/> Weekly Check-In</button>
-          {!entries.length&&<span style={{fontSize:11,color:"#3d5a7a"}}>Add monthly data first</span>}
+          {!entries.length&&<span style={{fontSize:11,color:"#6b8299"}}>Add monthly data first</span>}
         </div>
-        {analyzing&&<div style={{display:"flex",alignItems:"center",gap:10,padding:16,background:"#080f1e",borderRadius:10,fontSize:12,color:"#7a9ab8"}}><Loader size={13} className="spinning"/> APEX is analyzing goals, probabilities, and life events…</div>}
+        {analyzing&&<div style={{display:"flex",alignItems:"center",gap:10,padding:16,background:"#f8fafc",borderRadius:10,fontSize:12,color:"#3d617e"}}><Loader size={13} className="spinning"/> APEX is analyzing goals, probabilities, and life events…</div>}
         {advice.map(a=>(
           <div key={a.id}>
             <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
-              <span style={{fontSize:10,color:"#3d5a7a"}}>{a.date}</span>
-              <span style={{fontSize:9,background:"#1a2e4a",color:"#3d5a7a",padding:"2px 7px",borderRadius:4}}>{a.type}</span>
-              <span style={{fontSize:10,color:"#3d5a7a"}}>· {fmt(a.netWorthSnapshot)}</span>
+              <span style={{fontSize:10,color:"#6b8299"}}>{a.date}</span>
+              <span style={{fontSize:9,background:"#dde4ee",color:"#6b8299",padding:"2px 7px",borderRadius:4}}>{a.type}</span>
+              <span style={{fontSize:10,color:"#6b8299"}}>· {fmt(a.netWorthSnapshot)}</span>
             </div>
             <div className="ax-advice" dangerouslySetInnerHTML={{__html:renderAdvice(a.content)}}/>
           </div>
         ))}
-        {!advice.length&&!analyzing&&<div style={{textAlign:"center",padding:50,color:"#3d5a7a"}}><Brain size={36} color="#1a2e4a" style={{margin:"0 auto 12px"}}/><div style={{fontSize:13}}>Run your first analysis to get personalized advice from APEX</div></div>}
+        {!advice.length&&!analyzing&&<div style={{textAlign:"center",padding:50,color:"#6b8299"}}><Brain size={36} color="#dde4ee" style={{margin:"0 auto 12px"}}/><div style={{fontSize:13}}>Run your first analysis to get personalized advice from APEX</div></div>}
       </div>
     </div>
   );
@@ -2097,17 +2097,17 @@ Respond EXACTLY:
                 <div className="ax-mono ax-gold" style={{fontSize:20,fontWeight:700}}>{fmt(e.netWorth)}</div>
                 {delta!==null&&<div style={{fontSize:10,color:delta>=0?"#00d4a4":"#ff5252"}}>{delta>=0?"▲":"▼"} {fmt(Math.abs(delta))}</div>}
               </div>
-              <div style={{flex:1,fontSize:11,color:"#7a9ab8",display:"flex",gap:16,flexWrap:"wrap"}}>
+              <div style={{flex:1,fontSize:11,color:"#3d617e",display:"flex",gap:16,flexWrap:"wrap"}}>
                 <span>Investments <b style={{color:"#c9a84c"}}>{fmt(inv)}</b></span>
                 <span>Loans <b style={{color:loans>0?"#ff5252":"#00d4a4"}}>{fmt(loans)}</b></span>
-                <span>Income <b style={{color:"#dde3f0"}}>{fmt(inc)}</b></span>
+                <span>Income <b style={{color:"#111827"}}>{fmt(inc)}</b></span>
                 <span>Savings <b style={{color:sav>=0?"#00d4a4":"#ff5252"}}>{fmt(sav)}</b></span>
               </div>
               <button className="ax-btn" style={{fontSize:11}} onClick={()=>{setForm({...e});setTab("update");}}>Edit</button>
             </div>
           );
         })}
-        {!entries.length&&<div style={{textAlign:"center",padding:48,color:"#3d5a7a",fontSize:13}}>No history yet</div>}
+        {!entries.length&&<div style={{textAlign:"center",padding:48,color:"#6b8299",fontSize:13}}>No history yet</div>}
       </div>
     </div>
   );
