@@ -10,7 +10,7 @@ import {
   Settings, RotateCcw, X as XIcon
 } from "lucide-react";
 
-const DEFAULT_GOAL = 1_000_000;
+const DEFAULT_GOAL = 10_000_000;
 const CLAUDE_API = "https://api.anthropic.com/v1/messages";
 const MODEL      = "claude-sonnet-4-20250514";
 const CUR_YEAR   = new Date().getFullYear();
@@ -55,12 +55,12 @@ function monthlyNeeded(corpus, target, years, annRet) {
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 function monthKey() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
-function fmtML(key) { const [y,m]=key.split("-"); return new Date(+y,+m-1,1).toLocaleDateString("en-US",{month:"short",year:"numeric"}); }
+function fmtML(key) { const [y,m]=key.split("-"); return new Date(+y,+m-1,1).toLocaleDateString("en-IN",{month:"short",year:"numeric"}); }
 function fmt(n) {
-  if (!n && n!==0) return "$0";
-  if (n>=1e6) return `$${(n/1e6).toFixed(2)}M`;
-  if (n>=1e3) return `$${(n/1e3).toFixed(0)}K`;
-  return `$${Math.round(n).toLocaleString()}`;
+  if (!n && n!==0) return "₹0";
+  if (n>=1e7) return `₹${(n/1e7).toFixed(2)}Cr`;
+  if (n>=1e5) return `₹${(n/1e5).toFixed(1)}L`;
+  return `₹${Math.round(n).toLocaleString("en-IN")}`;
 }
 function initials(name) { if(!name) return "?"; return name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
 
@@ -135,7 +135,7 @@ function calcProtection(ins, profile, metrics) {
   const lifeGap   = Math.max(0, recLife - curLife);
 
   // Health cover
-  const recHealth = hasDep ? 30000 : 12000; // USD
+  const recHealth = hasDep ? 2_500_000 : 1_000_000; // ₹25L / ₹10L
   const curHealth = ins.healthSelf + ins.healthFamily + ins.criticalIllness + ins.superTopUp;
   const healthScore = Math.min(100, Math.round((curHealth / recHealth) * 100));
   const healthGap   = Math.max(0, recHealth - curHealth);
@@ -345,7 +345,7 @@ function GoalRing({ progress }) {
         strokeDasharray={`${dash} ${c}`} strokeLinecap="round" transform="rotate(-90 85 85)"
         style={{transition:"stroke-dasharray 1.4s cubic-bezier(.4,0,.2,1)"}}/>
       <text x="85" y="80" textAnchor="middle" fill="#c9a84c" fontFamily="'Space Mono',monospace" fontWeight="700" fontSize="15">{progress.toFixed(1)}%</text>
-      <text x="85" y="98" textAnchor="middle" fill="#3d5a7a" fontFamily="'Sora',sans-serif" fontSize="9.5">of $1M goal</text>
+      <text x="85" y="98" textAnchor="middle" fill="#3d5a7a" fontFamily="'Sora',sans-serif" fontSize="9.5">of wealth goal</text>
     </svg>
   );
 }
@@ -516,7 +516,7 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
               </select>
             </div>
             <div>
-              <label className="ax-label">Today's Target ($)</label>
+              <label className="ax-label">Today's Target (₹)</label>
               <input className="ax-input" type="number" min="0" value={goal.targetAmount||""} onChange={e=>onChange("targetAmount",parseFloat(e.target.value)||0)} placeholder="In today's money"/>
             </div>
             <div>
@@ -524,11 +524,11 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
               <input className="ax-input" type="number" min={CUR_YEAR} max={CUR_YEAR+60} value={goal.targetYear} onChange={e=>onChange("targetYear",parseInt(e.target.value)||CUR_YEAR+10)}/>
             </div>
             <div>
-              <label className="ax-label">Current Corpus ($)</label>
+              <label className="ax-label">Current Corpus (₹)</label>
               <input className="ax-input" type="number" min="0" value={goal.currentCorpus||""} onChange={e=>onChange("currentCorpus",parseFloat(e.target.value)||0)} placeholder="Already saved"/>
             </div>
             <div>
-              <label className="ax-label">Monthly Contribution ($)</label>
+              <label className="ax-label">Monthly Contribution (₹)</label>
               <input className="ax-input" type="number" min="0" value={goal.monthlyContrib||""} onChange={e=>onChange("monthlyContrib",parseFloat(e.target.value)||0)} placeholder="Monthly savings for this"/>
             </div>
             <div>
@@ -580,7 +580,7 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings })
     {id:"advisor",  label:"AI Advisor",icon:<Brain size={12}/>},
     {id:"history",  label:"History",  icon:<History size={12}/>},
   ];
-  const fh=n=>!n?"$0":n>=1e6?`$${(n/1e6).toFixed(n%1e6===0?0:2)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}K`:`$${Math.round(n).toLocaleString()}`;
+  const fh=n=>!n?"₹0":n>=1e7?`₹${(n/1e7).toFixed(n%1e7===0?0:2)}Cr`:n>=1e5?`₹${(n/1e5).toFixed(1)}L`:`₹${Math.round(n).toLocaleString("en-IN")}`;
   return (
     <>
       <div style={{padding:"13px 18px",borderBottom:"1px solid #1a2e4a",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
@@ -758,7 +758,7 @@ export default function App() {
       const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
       const isPdf=file.type==="application/pdf";
       const content=[isPdf?{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}}:{type:"image",source:{type:"base64",media_type:file.type,data:b64}},
-        {type:"text",text:"Extract financial data. Return ONLY valid JSON: {salary,totalExpenses,bankBalance,emiTotal,notes}. Numbers in USD (84 INR = 1 USD)."}];
+        {type:"text",text:"Extract financial data. Return ONLY valid JSON: {salary,totalExpenses,bankBalance,emiTotal,notes}. All numbers in INR (Indian Rupees)."}];
       const res=await fetch(CLAUDE_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,max_tokens:500,messages:[{role:"user",content}]})});
       const data=await res.json();
       const text=data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"{}";
@@ -778,28 +778,28 @@ export default function App() {
     const risk=RISK_OPTIONS.find(r=>r.id===p.riskAppetite);
     const ytr=p.age&&p.retirementAge?p.retirementAge-p.age:null;
     const deps=[p.dependents.spouse&&"spouse",p.dependents.children>0&&`${p.dependents.children} child${p.dependents.children>1?"ren":""}`,p.dependents.parents>0&&`${p.dependents.parents} parent${p.dependents.parents>1?"s":""}`].filter(Boolean);
-    const evStr=profile.lifeEvents.filter(e=>e.year>=CUR_YEAR&&e.label).sort((a,b)=>a.year-b.year).map(e=>`  • ${e.label}: ${e.year} (${e.year-CUR_YEAR}y away)${e.cost?` · $${e.cost.toLocaleString()} needed`:""}`).join("\n");
+    const evStr=profile.lifeEvents.filter(e=>e.year>=CUR_YEAR&&e.label).sort((a,b)=>a.year-b.year).map(e=>`  • ${e.label}: ${e.year} (${e.year-CUR_YEAR}y away)${e.cost?` · ₹${e.cost.toLocaleString("en-IN")} needed`:""}`).join("\n");
     const goalStr=goals.map(g=>{
       const yrs=g.targetYear-CUR_YEAR, infl=calcInflated(g.targetAmount,g.inflationRate,yrs), prob=probs[g.id];
       const needed=monthlyNeeded(g.currentCorpus,infl,yrs,g.expectedReturn);
-      return `  • ${g.name} (${g.category}): Target $${Math.round(infl).toLocaleString()} by ${g.targetYear} | Corpus $${g.currentCorpus.toLocaleString()} | Contributing $${g.monthlyContrib}/mo | Needs $${Math.round(needed)}/mo | MC Probability: ${prob??0}%`;
+      return `  • ${g.name} (${g.category}): Target ₹${Math.round(infl).toLocaleString("en-IN")} by ${g.targetYear} | Corpus ₹${g.currentCorpus.toLocaleString("en-IN")} | Contributing ₹${g.monthlyContrib}/mo | Needs ₹${Math.round(needed)}/mo | MC Probability: ${prob??0}%`;
     }).join("\n");
-    const fiStr = fi ? `\nFI PLAN (Pattu 30× Framework):\n- Essential monthly today: $${fiPlan.essentialMonthly.toLocaleString()}\n- Lifestyle inflation: ${fiPlan.inflationRate}%\n- Years to retirement: ${fiPlan.yearsToRetirement}\n- Inflated annual expense at retirement: $${Math.round(fi.inflatedAnnual).toLocaleString()}\n- FI Threshold (30×): $${Math.round(fi.fi30).toLocaleString()} | Progress: ${fi.prog30.toFixed(1)}%\n- Comfortable FI (35×): $${Math.round(fi.fi35).toLocaleString()}\n- True FI (40×): $${Math.round(fi.fi40).toLocaleString()}\n- Gap to FI30×: $${Math.round(fi.gap30).toLocaleString()}\n- Savings rate benchmark (≥50% of essential expenses): $${(fiPlan.essentialMonthly*0.5).toLocaleString()}/mo` : "";
-    return `\nPERSONAL PROFILE:\n- Name: ${p.name||"?"}, Age: ${p.age}${ytr?` (${ytr}y to retire)`:""}\n- Risk: ${p.riskAppetite?.toUpperCase()} — ${risk?.detail}\n- Dependents: ${deps.length?deps.join(", "):"None"}${fiStr}\n\nLIFE EVENTS:\n${evStr||"  None"}\n\nFINANCIAL GOALS (${goals.length} tracked, avg MC probability ${avgProb??0}%):\n${goalStr||"  None set"}\n- Total monthly allocated to goals: $${totalGoalAlloc.toLocaleString()}\n\nRISK & INSURANCE (Protection Score ${prot.overall}/100 — ${prot.overallCfg.label}):\n- Life Cover: $${prot.curLife.toLocaleString()} of $${prot.recLife.toLocaleString()} recommended (${prot.lifeScore}% adequate)${prot.lifeGap>0?` — GAP $${prot.lifeGap.toLocaleString()}`:""}\n- Health Cover: $${prot.curHealth.toLocaleString()} of $${prot.recHealth.toLocaleString()} recommended (${prot.healthScore}% adequate)${prot.healthGap>0?` — GAP $${prot.healthGap.toLocaleString()}`:""}\n- Emergency Fund: ${prot.emMonths.toFixed(1)} months of expenses (target 6 months, ${prot.emScore}% adequate)${prot.emGap>0?` — GAP $${prot.emGap.toLocaleString()}`:""}\n- Disability Cover: ${prot.disScore}% adequate\n- Credit Score: ${insurance.creditScore>0?`${insurance.creditScore} (${prot.creditLabel})`:"Not recorded"}`;
+    const fiStr = fi ? `\nFI PLAN (Pattu 30× Framework):\n- Essential monthly today: ₹${fiPlan.essentialMonthly.toLocaleString("en-IN")}\n- Lifestyle inflation: ${fiPlan.inflationRate}%\n- Years to retirement: ${fiPlan.yearsToRetirement}\n- Inflated annual expense at retirement: ₹${Math.round(fi.inflatedAnnual).toLocaleString("en-IN")}\n- FI Threshold (30×): ₹${Math.round(fi.fi30).toLocaleString("en-IN")} | Progress: ${fi.prog30.toFixed(1)}%\n- Comfortable FI (35×): ₹${Math.round(fi.fi35).toLocaleString("en-IN")}\n- True FI (40×): ₹${Math.round(fi.fi40).toLocaleString("en-IN")}\n- Gap to FI30×: ₹${Math.round(fi.gap30).toLocaleString("en-IN")}\n- Savings rate benchmark (≥50% of essential expenses): ₹${(fiPlan.essentialMonthly*0.5).toLocaleString("en-IN")}/mo` : "";
+    return `\nPERSONAL PROFILE:\n- Name: ${p.name||"?"}, Age: ${p.age}${ytr?` (${ytr}y to retire)`:""}\n- Risk: ${p.riskAppetite?.toUpperCase()} — ${risk?.detail}\n- Dependents: ${deps.length?deps.join(", "):"None"}${fiStr}\n\nLIFE EVENTS:\n${evStr||"  None"}\n\nFINANCIAL GOALS (${goals.length} tracked, avg MC probability ${avgProb??0}%):\n${goalStr||"  None set"}\n- Total monthly allocated to goals: ₹${totalGoalAlloc.toLocaleString("en-IN")}\n\nRISK & INSURANCE (Protection Score ${prot.overall}/100 — ${prot.overallCfg.label}):\n- Life Cover: ₹${prot.curLife.toLocaleString("en-IN")} of ₹${prot.recLife.toLocaleString("en-IN")} recommended (${prot.lifeScore}% adequate)${prot.lifeGap>0?` — GAP ₹${prot.lifeGap.toLocaleString("en-IN")}`:""}\n- Health Cover: ₹${prot.curHealth.toLocaleString("en-IN")} of ₹${prot.recHealth.toLocaleString("en-IN")} recommended (${prot.healthScore}% adequate)${prot.healthGap>0?` — GAP ₹${prot.healthGap.toLocaleString("en-IN")}`:""}\n- Emergency Fund: ${prot.emMonths.toFixed(1)} months of expenses (target 6 months, ${prot.emScore}% adequate)${prot.emGap>0?` — GAP ₹${prot.emGap.toLocaleString("en-IN")}`:""}\n- Disability Cover: ${prot.disScore}% adequate\n- Credit Score: ${insurance.creditScore>0?`${insurance.creditScore} (${prot.creditLabel})`:"Not recorded"}`;
   };
 
   // ── AI analysis ──────────────────────────────────────────────────────────────
   const runAnalysis=async(type="monthly")=>{
     if(!entries.length)return; setAnalyzing(true);
     const m=calcMetrics(entries, goalAmount), latest=entries[entries.length-1];
-    const last3=entries.slice(-3).map(e=>`${e.label}: NW $${e.netWorth.toLocaleString()}`).join("; ");
-    const prompt=`You are APEX, an elite personal financial advisor. Client goal: ${fmt(goalAmount)} USD net worth ASAP.
+    const last3=entries.slice(-3).map(e=>`${e.label}: NW ₹${e.netWorth.toLocaleString("en-IN")}`).join("; ");
+    const prompt=`You are APEX, an elite personal financial advisor for an Indian investor. Client goal: ${fmt(goalAmount)} net worth ASAP. All amounts are in Indian Rupees (₹).
 ${buildCtx()}
 FINANCIAL SNAPSHOT:
-- Net Worth: $${m.netWorth.toLocaleString()} (${m.progress.toFixed(1)}% of ${fmt(goalAmount)} goal)
-- Monthly Income: $${m.totalIncome.toLocaleString()} | Expenses: $${m.totalExp.toLocaleString()}
-- Monthly Savings: $${m.monthlySavings.toLocaleString()} (${m.savingsRate.toFixed(1)}%) | Allocated to sub-goals: $${totalGoalAlloc.toLocaleString()} | Available for $1M: $${Math.max(0,m.monthlySavings-totalGoalAlloc).toLocaleString()}
-- Investments: $${m.totalInv.toLocaleString()} | Loans: $${m.totalLoans.toLocaleString()} | DTI: ${m.dti.toFixed(1)}%
+- Net Worth: ₹${m.netWorth.toLocaleString("en-IN")} (${m.progress.toFixed(1)}% of ${fmt(goalAmount)} goal)
+- Monthly Income: ₹${m.totalIncome.toLocaleString("en-IN")} | Expenses: ₹${m.totalExp.toLocaleString("en-IN")}
+- Monthly Savings: ₹${m.monthlySavings.toLocaleString("en-IN")} (${m.savingsRate.toFixed(1)}%) | Allocated to sub-goals: ₹${totalGoalAlloc.toLocaleString("en-IN")} | Available for wealth goal: ₹${Math.max(0,m.monthlySavings-totalGoalAlloc).toLocaleString("en-IN")}
+- Investments: ₹${m.totalInv.toLocaleString("en-IN")} | Loans: ₹${m.totalLoans.toLocaleString("en-IN")} | DTI: ${m.dti.toFixed(1)}%
 - Trend: ${last3}
 - Notes: ${latest.notes||"none"}
 - Analysis type: ${type}
@@ -807,7 +807,7 @@ FINANCIAL SNAPSHOT:
 Respond EXACTLY:
 
 **📈 TRAJECTORY**
-[$1M timeline AND FI timeline using the Pattu 30× framework. If FI number is set, compare progress to both. Are they on track to FI before or at retirement?]
+[${fmt(goalAmount)} timeline AND FI timeline using the Pattu 30× framework. If FI number is set, compare progress to both. Are they on track to FI before or at retirement?]
 
 **🎯 FI READINESS (Pattu Framework)**
 [Assess progress toward FI30× target. Is savings rate meeting the ≥50% of essential expenses benchmark? Check if lifestyle inflation assumption (7% vs 8%) is appropriate. Flag any rebalancing drift >5%. Recommend bucket strategy allocation if close to retirement.]
@@ -819,16 +819,16 @@ Respond EXACTLY:
 [2-3 specific data-backed obstacles. Include goal funding conflicts.]
 
 **⚡ ACTION PLAN**
-[3-5 quantified actions. Match risk appetite. Address goal shortfalls specifically.]
+[3-5 quantified actions in INR. Match risk appetite. Address goal shortfalls specifically. Suggest Indian instruments: ELSS, PPF, NPS, index funds, FDs, etc.]
 
 **🛡️ PROTECTION GAPS**
-[Flag any critical insurance gaps that could derail the $1M goal (e.g. life cover gap for dependents, no disability cover for income protection, inadequate emergency fund). Estimate the annual premium cost of closing each gap. Prioritize by financial impact.]
+[Flag any critical insurance gaps (e.g. life cover gap for dependents, no disability cover, inadequate emergency fund). Estimate annual premium cost in INR. Prioritize by financial impact.]
 
 **🚨 ALERTS**
 [Red flags. Urgent life events needing corpus. Goals with <25% MC probability.]
 
 **💡 BOLD MOVE**
-[One high-impact, risk-calibrated recommendation that accelerates BOTH the $1M goal AND underfunded sub-goals.]`;
+[One high-impact, risk-calibrated recommendation that accelerates BOTH the ${fmt(goalAmount)} goal AND underfunded sub-goals.]`;
     try {
       const res=await fetch(CLAUDE_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,max_tokens:1200,messages:[{role:"user",content:prompt}]})});
       const data=await res.json();
@@ -842,7 +842,7 @@ Respond EXACTLY:
 
   // ── SETTINGS MODAL ────────────────────────────────────────────────────────────
   const SettingsModal = () => {
-    const fmtGoal = n => n>=1e6?`$${(n/1e6).toFixed(n%1e6===0?0:2)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}K`:`$${Math.round(n).toLocaleString()}`;
+    const fmtGoal = n => n>=1e7?`₹${(n/1e7).toFixed(n%1e7===0?0:2)}Cr`:n>=1e5?`₹${(n/1e5).toFixed(1)}L`:`₹${Math.round(n).toLocaleString("en-IN")}`;
     return(
       <div className="settings-overlay" onClick={e=>{if(e.target===e.currentTarget){setShowSettings(false);setResetTarget(null);}}}>
         <div className="settings-panel">
@@ -865,7 +865,7 @@ Respond EXACTLY:
             </div>
             <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap"}}>
               <div style={{flex:1,minWidth:180}}>
-                <label className="ax-label">New goal amount (USD)</label>
+                <label className="ax-label">New goal amount (₹ INR)</label>
                 <input className="ax-input" type="text" value={goalEdit}
                   onChange={e=>setGoalEdit(e.target.value)}
                   onKeyDown={e=>e.key==="Enter"&&saveGoalAmount()}
@@ -877,7 +877,7 @@ Respond EXACTLY:
             </div>
             {/* Quick presets */}
             <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
-              {[500_000,1_000_000,2_000_000,5_000_000,10_000_000].map(v=>(
+              {[5_000_000,10_000_000,25_000_000,50_000_000,100_000_000].map(v=>(
                 <button key={v} className="ax-btn" style={{fontSize:11,padding:"5px 10px",borderColor:goalAmount===v?"#c9a84c":"#1a2e4a",color:goalAmount===v?"#c9a84c":"#3d5a7a"}}
                   onClick={async()=>{ setGoalAmount(v); await persist("apex-goal",v); flash("Goal updated to "+fmtGoal(v)+"!"); }}>
                   {fmtGoal(v)}
@@ -961,11 +961,11 @@ Respond EXACTLY:
     const m=metrics;
     const alerts=[];
     if(m.savingsRate<20) alerts.push(`Savings rate ${m.savingsRate.toFixed(1)}% is below the 30% minimum needed.`);
-    if(m.totalLoans>m.totalInv) alerts.push(`Outstanding debt ($${m.totalLoans.toLocaleString()}) exceeds investments — loans eroding wealth.`);
-    if(m.monthlyGrowth<0) alerts.push(`Net worth declined $${Math.abs(m.monthlyGrowth).toLocaleString()} this month.`);
+    if(m.totalLoans>m.totalInv) alerts.push(`Outstanding debt (₹${m.totalLoans.toLocaleString("en-IN")}) exceeds investments — loans eroding wealth.`);
+    if(m.monthlyGrowth<0) alerts.push(`Net worth declined ₹${Math.abs(m.monthlyGrowth).toLocaleString("en-IN")} this month.`);
     if(m.dti>40) alerts.push(`Debt-to-income ratio ${m.dti.toFixed(1)}% is dangerously high.`);
     atRiskGoals.forEach(g=>alerts.push(`Goal "${g.name}" has only ${probs[g.id]}% probability of success — needs attention.`));
-    profile.lifeEvents.filter(e=>e.year-CUR_YEAR<=2&&e.year>=CUR_YEAR&&e.label).forEach(e=>alerts.push(`Life event "${e.label}" ${e.year===CUR_YEAR?"is this year":`in ${e.year-CUR_YEAR}y`}${e.cost?` — $${e.cost.toLocaleString()} needed`:""}.`));
+    profile.lifeEvents.filter(e=>e.year-CUR_YEAR<=2&&e.year>=CUR_YEAR&&e.label).forEach(e=>alerts.push(`Life event "${e.label}" ${e.year===CUR_YEAR?"is this year":`in ${e.year-CUR_YEAR}y`}${e.cost?` — ₹${e.cost.toLocaleString("en-IN")} needed`:""}.`));
     if(prot.lifeGap>0&&prot.lifeScore<50)   alerts.push(`Life cover is only ${prot.lifeScore}% adequate — gap of ${fmt(prot.lifeGap)}. Your dependents are underprotected.`);
     if(prot.healthGap>0&&prot.healthScore<60) alerts.push(`Health cover is only ${prot.healthScore}% adequate — gap of ${fmt(prot.healthGap)}. A major illness could wipe savings.`);
     if(prot.emMonths<3)                       alerts.push(`Emergency fund covers only ${prot.emMonths.toFixed(1)} months. Target is 6 months (${fmt(prot.recEmergency)}).`);
@@ -1001,13 +1001,13 @@ Respond EXACTLY:
               <div style={{textAlign:"center"}}>
                 <div className="ax-mono ax-gold" style={{fontSize:22,fontWeight:700}}>{fmt(m.netWorth)}</div>
                 <div className="ax-dim" style={{fontSize:10,marginTop:2}}>current net worth</div>
-                {m.monthsToGoal&&<div style={{marginTop:6,fontSize:11,color:"#3d5a7a",lineHeight:1.5}}>~{m.monthsToGoal} months to $1M<br/>at current pace</div>}
+                {m.monthsToGoal&&<div style={{marginTop:6,fontSize:11,color:"#3d5a7a",lineHeight:1.5}}>~{m.monthsToGoal} months to {fmt(goalAmount)}<br/>at current pace</div>}
               </div>
             </div>
             <div style={{flex:1,display:"flex",flexDirection:"column",gap:10}}>
               <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                 <MetricCard label="Monthly Income" value={fmt(m.totalIncome)}/>
-                <MetricCard label="Monthly Savings" value={fmt(m.monthlySavings)} color={m.monthlySavings>=0?"#00d4a4":"#ff5252"} sub={`${m.savingsRate.toFixed(1)}% rate · $${totalGoalAlloc.toLocaleString()} to goals`}/>
+                <MetricCard label="Monthly Savings" value={fmt(m.monthlySavings)} color={m.monthlySavings>=0?"#00d4a4":"#ff5252"} sub={`${m.savingsRate.toFixed(1)}% rate · ₹${totalGoalAlloc.toLocaleString("en-IN")} to goals`}/>
               </div>
               <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                 <MetricCard label="Investments" value={fmt(m.totalInv)} color="#c9a84c"/>
@@ -1026,8 +1026,8 @@ Respond EXACTLY:
                     <defs><linearGradient id="nwg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#c9a84c" stopOpacity={0.25}/><stop offset="95%" stopColor="#c9a84c" stopOpacity={0}/></linearGradient></defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1a2e4a"/>
                     <XAxis dataKey="month" tick={{fill:"#3d5a7a",fontSize:10}} axisLine={false} tickLine={false}/>
-                    <YAxis tick={{fill:"#3d5a7a",fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`$${(v/1000).toFixed(0)}K`}/>
-                    <Tooltip contentStyle={{background:"#0b1628",border:"1px solid #1a2e4a",borderRadius:8,color:"#dde3f0",fontSize:11}} formatter={v=>[`$${v.toLocaleString()}`,""]}/>
+                    <YAxis tick={{fill:"#3d5a7a",fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>v>=1e7?`₹${(v/1e7).toFixed(1)}Cr`:v>=1e5?`₹${(v/1e5).toFixed(0)}L`:`₹${(v/1000).toFixed(0)}K`}/>
+                    <Tooltip contentStyle={{background:"#0b1628",border:"1px solid #1a2e4a",borderRadius:8,color:"#dde3f0",fontSize:11}} formatter={v=>[`₹${v.toLocaleString("en-IN")}`,""]}/>
                     <Area type="monotone" dataKey="netWorth" stroke="#c9a84c" strokeWidth={2} fill="url(#nwg)" dot={{fill:"#c9a84c",r:4,strokeWidth:0}}/>
                   </AreaChart>
                 </ResponsiveContainer>
@@ -1056,7 +1056,7 @@ Respond EXACTLY:
                   </div>
                   <div style={{display:"flex",gap:12,marginTop:6,flexWrap:"wrap",fontSize:10,color:"#3d5a7a"}}>
                     {goals.filter(g=>g.monthlyContrib>0).map(g=>{const cat=GOAL_CATS[g.category]||GOAL_CATS.custom;return<span key={g.id} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:cat.color,display:"inline-block"}}/>{g.name} {fmt(g.monthlyContrib)}</span>;})}
-                    {m.monthlySavings-totalGoalAlloc>0&&<span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:"#1a2e4a",display:"inline-block"}}/>$1M goal {fmt(Math.max(0,m.monthlySavings-totalGoalAlloc))}</span>}
+                    {m.monthlySavings-totalGoalAlloc>0&&<span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:"#1a2e4a",display:"inline-block"}}/>Wealth goal {fmt(Math.max(0,m.monthlySavings-totalGoalAlloc))}</span>}
                   </div>
                 </div>
               )}
@@ -1284,7 +1284,7 @@ Respond EXACTLY:
                 </select>
               </div>
               <div>
-                <label className="ax-label">Today's Target ($)</label>
+                <label className="ax-label">Today's Target (₹)</label>
                 <input className="ax-input" type="number" min="0" value={addGoalForm.targetAmount||""} onChange={e=>setAddGoalForm(f=>({...f,targetAmount:parseFloat(e.target.value)||0}))} placeholder="In today's money"/>
               </div>
               <div>
@@ -1292,11 +1292,11 @@ Respond EXACTLY:
                 <input className="ax-input" type="number" min={CUR_YEAR} max={CUR_YEAR+60} value={addGoalForm.targetYear} onChange={e=>setAddGoalForm(f=>({...f,targetYear:parseInt(e.target.value)||CUR_YEAR+10}))}/>
               </div>
               <div>
-                <label className="ax-label">Current Corpus ($)</label>
+                <label className="ax-label">Current Corpus (₹)</label>
                 <input className="ax-input" type="number" min="0" value={addGoalForm.currentCorpus||""} onChange={e=>setAddGoalForm(f=>({...f,currentCorpus:parseFloat(e.target.value)||0}))} placeholder="Already saved"/>
               </div>
               <div>
-                <label className="ax-label">Monthly Contribution ($)</label>
+                <label className="ax-label">Monthly Contribution (₹)</label>
                 <input className="ax-input" type="number" min="0" value={addGoalForm.monthlyContrib||""} onChange={e=>setAddGoalForm(f=>({...f,monthlyContrib:parseFloat(e.target.value)||0}))} placeholder="Per month"/>
               </div>
               <div>
@@ -1357,7 +1357,7 @@ Respond EXACTLY:
 
           {/* Source attribution */}
           <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.15)",borderRadius:10,padding:"10px 14px",fontSize:11,color:"#8aa0be",lineHeight:1.6}}>
-            <b style={{color:"#c9a84c"}}>Framework:</b> M Pattabiraman (freefincal.com) — 30× corpus formula, lifestyle inflation at 7–8%, savings benchmarked to expenses, bucket strategy. Based on Indian financial planning context; amounts entered in USD equivalent.
+            <b style={{color:"#c9a84c"}}>Framework:</b> M Pattabiraman (freefincal.com) — 30× corpus formula, lifestyle inflation at 7–8%, savings benchmarked to expenses, bucket strategy. All amounts in INR (₹).
           </div>
 
           {/* ── FI NUMBER CALCULATOR ── */}
@@ -1368,8 +1368,8 @@ Respond EXACTLY:
             </div>
             <div className="frow">
               <div>
-                <label className="ax-label">Essential monthly expenses today ($) <span style={{color:"#3d5a7a"}}>couple only</span></label>
-                <input className="ax-input" type="number" min="0" value={fiPlan.essentialMonthly||""} onChange={e=>updFI("essentialMonthly",parseFloat(e.target.value)||0)} placeholder="e.g. 3000"/>
+                <label className="ax-label">Essential monthly expenses today (₹) <span style={{color:"#3d5a7a"}}>couple only</span></label>
+                <input className="ax-input" type="number" min="0" value={fiPlan.essentialMonthly||""} onChange={e=>updFI("essentialMonthly",parseFloat(e.target.value)||0)} placeholder="e.g. 50000"/>
               </div>
               <div>
                 <label className="ax-label">Years to retirement</label>
@@ -1587,7 +1587,7 @@ Respond EXACTLY:
           </div>
 
           <div style={{fontSize:11,color:"#3d5a7a",borderTop:"1px solid #1a2e4a",paddingTop:12,lineHeight:1.7}}>
-            <b style={{color:"#8aa0be"}}>Source:</b> M Pattabiraman, freefincal.com — 38-min interview on building a ₹10 crore corpus. Framework is India-specific; enter all amounts in USD equivalent. Run the AI Advisor for a personalised FI trajectory analysis using these benchmarks.
+            <b style={{color:"#8aa0be"}}>Source:</b> M Pattabiraman, freefincal.com — 38-min interview on building a ₹10 crore corpus. All amounts in INR (₹). Run the AI Advisor for a personalised FI trajectory analysis using these benchmarks.
           </div>
         </div>
       </div>
@@ -1673,7 +1673,7 @@ Respond EXACTLY:
               </div>
             </div>
             <div style={{marginTop:14,fontSize:11,color:"#3d5a7a",lineHeight:1.6}}>
-              Protection score weights: Life 35% · Health 30% · Emergency Fund 20% · Disability 10% · Credit Score 5%. Benchmarks use Indian financial planning standards (15× income life cover, ₹25L family health cover).
+              Protection score weights: Life 35% · Health 30% · Emergency Fund 20% · Disability 10% · Credit Score 5%. Benchmarks: 15× annual income life cover · ₹25L family health · 6× monthly emergency fund.
             </div>
           </div>
 
@@ -1685,10 +1685,10 @@ Respond EXACTLY:
               : "Life cover is adequate. Review every 5 years or when income changes significantly."
             }>
             <div className="frow" style={{marginBottom:0}}>
-              <div><label className="ax-label">Term Life Cover ($)</label>
+              <div><label className="ax-label">Term Life Cover (₹)</label>
                 <input className="ax-input" type="number" min="0" value={insurance.termLifeCover||""} onChange={e=>updIns("termLifeCover",parseFloat(e.target.value)||0)} placeholder="Sum assured"/>
               </div>
-              <div><label className="ax-label">Other Life Insurance ($)</label>
+              <div><label className="ax-label">Other Life Insurance (₹)</label>
                 <input className="ax-input" type="number" min="0" value={insurance.otherLifeCover||""} onChange={e=>updIns("otherLifeCover",parseFloat(e.target.value)||0)} placeholder="LIC, ULIP, etc."/>
               </div>
             </div>
@@ -1702,20 +1702,20 @@ Respond EXACTLY:
           <CoverCard title="Health Insurance" Icon={Activity} iconColor="#d4537e"
             score={p.healthScore} current={p.curHealth} recommended={p.recHealth} gap={p.healthGap}
             insight={p.healthScore<80
-              ? `Target: ${fmt(p.recHealth)} total (individual $12K + family ${p.hasDep?"$30K":"N/A"}). Consider a base policy + super top-up for cost efficiency. Critical illness rider adds another $15–20K coverage.`
+              ? `Target: ${fmt(p.recHealth)} total (individual ₹10L + family ${p.hasDep?"₹25L":"N/A"}). Consider a base policy + super top-up for cost efficiency. Critical illness rider adds another ₹15–20L coverage.`
               : "Health cover is adequate. Add a super top-up for additional cushion at low cost."
             }>
             <div className="frow" style={{marginBottom:0}}>
-              <div><label className="ax-label">Individual Cover ($)</label>
+              <div><label className="ax-label">Individual Cover (₹)</label>
                 <input className="ax-input" type="number" min="0" value={insurance.healthSelf||""} onChange={e=>updIns("healthSelf",parseFloat(e.target.value)||0)} placeholder="Your health policy"/>
               </div>
-              <div><label className="ax-label">Family Floater ($)</label>
+              <div><label className="ax-label">Family Floater (₹)</label>
                 <input className="ax-input" type="number" min="0" value={insurance.healthFamily||""} onChange={e=>updIns("healthFamily",parseFloat(e.target.value)||0)} placeholder="Family policy"/>
               </div>
-              <div><label className="ax-label">Critical Illness ($)</label>
+              <div><label className="ax-label">Critical Illness (₹)</label>
                 <input className="ax-input" type="number" min="0" value={insurance.criticalIllness||""} onChange={e=>updIns("criticalIllness",parseFloat(e.target.value)||0)} placeholder="CI rider/policy"/>
               </div>
-              <div><label className="ax-label">Super Top-Up ($)</label>
+              <div><label className="ax-label">Super Top-Up (₹)</label>
                 <input className="ax-input" type="number" min="0" value={insurance.superTopUp||""} onChange={e=>updIns("superTopUp",parseFloat(e.target.value)||0)} placeholder="Top-up policy"/>
               </div>
             </div>
@@ -1728,7 +1728,7 @@ Respond EXACTLY:
               ? `You have ${p.emMonths.toFixed(1)} months of expenses liquid. Target 6 months (${fmt(p.recEmergency)}). Keep in a liquid FD or money market fund — not equity. Without this, any job loss forces you to sell investments at a bad time.`
               : "Emergency fund is solid. Keep it in a liquid FD or savings account, not equity."
             }>
-            <div><label className="ax-label">Emergency Fund Amount ($)</label>
+            <div><label className="ax-label">Emergency Fund Amount (₹)</label>
               <input className="ax-input" type="number" min="0" value={insurance.emergencyAmount||""} onChange={e=>updIns("emergencyAmount",parseFloat(e.target.value)||0)} placeholder="Liquid cash / FD / liquid fund"/>
             </div>
             {metrics&&<div style={{fontSize:11,color:"#3d5a7a",display:"flex",gap:14,flexWrap:"wrap"}}>
@@ -1746,7 +1746,7 @@ Respond EXACTLY:
               : "Disability cover is adequate. Review annually and after any salary increase."
             }>
             <div className="frow" style={{marginBottom:8}}>
-              <div><label className="ax-label">Disability Income Cover ($/mo)</label>
+              <div><label className="ax-label">Disability Income Cover (₹/mo)</label>
                 <input className="ax-input" type="number" min="0" value={insurance.disabilityMonthly||""} onChange={e=>updIns("disabilityMonthly",parseFloat(e.target.value)||0)} placeholder="Monthly benefit"/>
               </div>
             </div>
@@ -1809,7 +1809,7 @@ Respond EXACTLY:
 
           {/* Notes */}
           <div style={{fontSize:11,color:"#3d5a7a",borderTop:"1px solid #1a2e4a",paddingTop:12,lineHeight:1.7}}>
-            <b style={{color:"#8aa0be"}}>Note:</b> All coverage amounts in USD equivalents. Convert from INR using current rate (₹84 = $1). Benchmarks: Life cover = {prot.hasDep?"15×":"10×"} annual income, Health = ${prot.recHealth.toLocaleString()} total, Emergency = 6× monthly expenses. Run AI Advisor to get a personalised insurance action plan.
+            <b style={{color:"#8aa0be"}}>Note:</b> All amounts in INR (₹). Benchmarks: Life cover = {prot.hasDep?"15×":"10×"} annual income · Health = ₹{prot.recHealth.toLocaleString("en-IN")} total · Emergency = 6× monthly expenses. Run AI Advisor for a personalised insurance action plan.
           </div>
         </div>
       </div>
@@ -1872,7 +1872,7 @@ Respond EXACTLY:
         </div>
         <div className="ax-card">
           <div className="ax-sec"><Calendar size={11}/> Life Events Calendar</div>
-          <div style={{fontSize:11,color:"#3d5a7a",marginBottom:14,lineHeight:1.6}}>Major upcoming expenses that compete with your $1M goal. APEX factors these into trajectory and alerts.</div>
+          <div style={{fontSize:11,color:"#3d5a7a",marginBottom:14,lineHeight:1.6}}>Major upcoming expenses that compete with your wealth goal. APEX factors these into trajectory and alerts.</div>
           {profile.lifeEvents.filter(e=>e.label).length>0&&(
             <div style={{marginBottom:18,padding:"10px 6px 4px",background:"#080f1e",borderRadius:10,border:"1px solid #1a2e4a",overflowX:"auto"}}>
               <EventTimeline events={profile.lifeEvents} retirementAge={profile.retirementAge} age={profile.age}/>
@@ -1886,7 +1886,7 @@ Respond EXACTLY:
                   <div className="ev-row" style={{flex:1}}>
                     <input className="ax-input" value={ev.label} onChange={e=>updEv(ev.id,"label",e.target.value)} placeholder="Event name"/>
                     <input className="ax-input" type="number" min={CUR_YEAR} max={CUR_YEAR+60} value={ev.year} onChange={e=>updEv(ev.id,"year",parseInt(e.target.value)||CUR_YEAR+5)}/>
-                    <input className="ax-input" type="number" min="0" value={ev.cost||""} onChange={e=>updEv(ev.id,"cost",parseFloat(e.target.value)||0)} placeholder="Cost $"/>
+                    <input className="ax-input" type="number" min="0" value={ev.cost||""} onChange={e=>updEv(ev.id,"cost",parseFloat(e.target.value)||0)} placeholder="Cost ₹"/>
                     <button className="ax-btn del" onClick={()=>delEv(ev.id)} style={{padding:"6px 8px",minWidth:30}}><Trash2 size={12}/></button>
                   </div>
                 </div>
@@ -1898,7 +1898,7 @@ Respond EXACTLY:
             <div style={{display:"grid",gridTemplateColumns:"1fr 80px 100px auto",gap:8,alignItems:"center"}}>
               <input className="ax-input" value={newEv.label} onChange={e=>setNewEv(n=>({...n,label:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&addEv()} placeholder="e.g. Child's college"/>
               <input className="ax-input" type="number" min={CUR_YEAR} max={CUR_YEAR+60} value={newEv.year} onChange={e=>setNewEv(n=>({...n,year:parseInt(e.target.value)||CUR_YEAR+5}))}/>
-              <input className="ax-input" type="number" min="0" value={newEv.cost||""} onChange={e=>setNewEv(n=>({...n,cost:parseFloat(e.target.value)||0}))} placeholder="Cost $"/>
+              <input className="ax-input" type="number" min="0" value={newEv.cost||""} onChange={e=>setNewEv(n=>({...n,cost:parseFloat(e.target.value)||0}))} placeholder="Cost ₹"/>
               <button className="ax-btn primary" onClick={addEv} disabled={!newEv.label.trim()}><Plus size={12}/> Add</button>
             </div>
           </div>
@@ -1926,7 +1926,7 @@ Respond EXACTLY:
         </div>
         <div className="ax-card">
           <div className="ax-sec" style={{marginBottom:14}}>Snapshot for: {form.label}</div>
-          <div style={{marginBottom:12}}><label className="ax-label">Net Worth (Total Assets − Liabilities)</label><input className="ax-input" type="number" min="0" value={form.netWorth||""} placeholder="USD" onChange={e=>setForm(f=>({...f,netWorth:parseFloat(e.target.value)||0}))}/></div>
+          <div style={{marginBottom:12}}><label className="ax-label">Net Worth (Total Assets − Liabilities)</label><input className="ax-input" type="number" min="0" value={form.netWorth||""} placeholder="₹ INR" onChange={e=>setForm(f=>({...f,netWorth:parseFloat(e.target.value)||0}))}/></div>
           <div style={{marginBottom:14}}><label className="ax-label">Bank / Cash Balance</label><input className="ax-input" type="number" min="0" value={form.bankBalance||""} placeholder="0" onChange={e=>setForm(f=>({...f,bankBalance:parseFloat(e.target.value)||0}))}/></div>
           <hr className="ax-divider"/>
           <div className="ax-sec"><Wallet size={11}/> Investments</div>
