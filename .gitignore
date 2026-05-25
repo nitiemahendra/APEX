@@ -32,3 +32,12 @@ yarn-error.log*
 .cache/
 .parcel-cache/
 .eslintcache
+
+# Database (contains personal financial data)
+apex.db
+*.db
+*.db-shm
+*.db-wal
+
+# Claude Code workspace
+.claude/

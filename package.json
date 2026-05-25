@@ -1,8 +1,29 @@
 {
   "name": "apex-advisor",
-  "private": true,
   "version": "1.0.0",
+  "description": "Personal finance advisor for Indian investors — FI planning, goal tracking, AI advisory, and local AI document parsing via Ollama",
   "type": "module",
+  "license": "MIT",
+  "author": "Mahendra Kumar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nitiemahendra/APEX.git"
+  },
+  "keywords": [
+    "personal-finance",
+    "india",
+    "financial-independence",
+    "fi-planning",
+    "goal-planning",
+    "investment-tracker",
+    "react",
+    "ollama",
+    "gemma",
+    "local-ai"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "concurrently -n server,vite -c cyan,green \"node server/index.js\" \"vite\"",
     "server": "node server/index.js",
