@@ -7,7 +7,7 @@ import {
   User, Users, Calendar, Trash2, Flag,
   BookOpen, Home, Sun, Plane, Shield, Briefcase, Heart, Star, Sigma,
   Umbrella, Activity, AlertOctagon, TrendingDown,
-  Settings, RotateCcw, X as XIcon
+  Settings, RotateCcw, X as XIcon, Database
 } from "lucide-react";
 
 const DEFAULT_GOAL = 10_000_000;
@@ -628,6 +628,7 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings, o
     {id:"update",   label:"Monthly",  icon:<Plus size={12}/>},
     {id:"advisor",  label:"AI Advisor",icon:<Brain size={12}/>},
     {id:"history",  label:"History",  icon:<History size={12}/>},
+    {id:"database", label:"Database", icon:<Database size={12}/>},
   ];
   const fh=n=>{if(!n)return"₹0";const a=Math.abs(n),s=n<0?"-":"";return a>=1e7?`${s}₹${(a/1e7).toFixed(a%1e7===0?0:2)}Cr`:a>=1e5?`${s}₹${(a/1e5).toFixed(1)}L`:`${s}₹${Math.round(a).toLocaleString("en-IN")}`;}
   return (
@@ -704,6 +705,13 @@ export default function App() {
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [newEv, setNewEv]       = useState({label:"",year:CUR_YEAR+5,cost:0});
   const fileRef = useRef(null);
+  const dbFileRef = useRef(null);
+
+  // ── Database view state ──────────────────────────────────────────────────────
+  const [dbView, setDbView]             = useState({ keys: [], snapshots: [] });
+  const [snapshotLabel, setSnapshotLabel] = useState("");
+  const [dbMsg, setDbMsg]               = useState("");
+  const [resetConfirm, setResetConfirm] = useState(false);
 
   // ── Boot ────────────────────────────────────────────────────────────────────
   useEffect(()=>{
@@ -713,6 +721,58 @@ export default function App() {
       setBooting(false);
     })();
   },[]);
+
+  // ── Database management ──────────────────────────────────────────────────────
+  async function loadDbView() {
+    const [keys, snaps] = await Promise.all([
+      fetch("/api/storage").then(r=>r.json()),
+      fetch("/api/snapshots").then(r=>r.json()),
+    ]);
+    setDbView({ keys, snapshots: snaps });
+  }
+  useEffect(()=>{ if(tab==="database") loadDbView(); },[tab]);
+
+  async function exportDb() { window.open("/api/export","_blank"); }
+
+  async function importDb(e) {
+    const file = e.target.files[0]; if(!file) return;
+    const data = JSON.parse(await file.text());
+    await fetch("/api/import",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    e.target.value="";
+    setDbMsg("Imported!"); setTimeout(()=>setDbMsg(""),3000);
+    await loadDbView();
+  }
+
+  async function resetDb() {
+    await fetch("/api/storage",{method:"DELETE"});
+    setResetConfirm(false);
+    setDbMsg("Reset complete — reloading…");
+    setTimeout(()=>window.location.reload(),1200);
+  }
+
+  async function createSnapshot() {
+    const label = snapshotLabel.trim() || new Date().toLocaleDateString("en-IN",{month:"short",year:"numeric"});
+    await fetch("/api/snapshots",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label})});
+    setSnapshotLabel("");
+    setDbMsg("Snapshot saved"); setTimeout(()=>setDbMsg(""),3000);
+    await loadDbView();
+  }
+
+  async function restoreSnapshot(id) {
+    await fetch(`/api/snapshots/${id}/restore`,{method:"POST"});
+    setDbMsg("Restored — reloading…");
+    setTimeout(()=>window.location.reload(),1200);
+  }
+
+  async function deleteSnapshot(id) {
+    await fetch(`/api/snapshots/${id}`,{method:"DELETE"});
+    await loadDbView();
+  }
+
+  async function deleteKey(key) {
+    await window.storage.remove(key);
+    await loadDbView();
+  }
 
   // ── Monte Carlo — runs whenever goals change ─────────────────────────────────
   useEffect(()=>{
@@ -831,36 +891,14 @@ export default function App() {
     flash("Reset complete");
   };
 
-  // ── Statement parser ─────────────────────────────────────────────────────────
+  // ── Statement parser (uses local Gemma 4 via Ollama) ────────────────────────
   const parseStatement=async file=>{
-    if(!apiKey){ setParsedNote("API key not set. Add your Claude API key in Settings (⚙)."); return; }
     setParsingFile(true); setParsedNote("");
     try {
-      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
-      const isPdf=file.type==="application/pdf";
-      const extractPrompt=`You are a financial data extractor for Indian investors. Analyze this document and extract all financial data you can find.
-Return ONLY valid JSON with these fields (use 0 for fields not found):
-{"salary":0,"totalExpenses":0,"bankBalance":0,"emiTotal":0,"equity":0,"mutualFunds":0,"epf":0,"nps":0,"ppf":0,"fd":0,"sgb":0,"gold":0,"realEstate":0,"netWorth":0,"notes":""}
-Field guide:
-- salary/totalExpenses/bankBalance/emiTotal: from bank statements
-- equity: total value of stocks/shares (CDSL/NSDL demat statements)
-- mutualFunds: total mutual fund NAV value (CAS/MF statements)
-- epf: EPF/PF corpus (EPFO passbook)
-- nps: NPS Tier-1 balance
-- ppf: PPF account balance
-- fd: fixed deposit total
-- sgb: sovereign gold bonds value
-- gold: physical gold / gold ETF
-- realEstate: property valuation if stated
-- netWorth: total portfolio value if a summary page is present
-- notes: ONE sentence: document type + key number found
-All amounts in INR. Be precise with numbers from the document.`;
-      const content=[isPdf?{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}}:{type:"image",source:{type:"base64",media_type:file.type,data:b64}},{type:"text",text:extractPrompt}];
-      const res=await fetch(CLAUDE_API,{method:"POST",headers:apiHeaders(),body:JSON.stringify({model:MODEL,max_tokens:600,messages:[{role:"user",content}]})});
-      if(!res.ok){ const e=await res.json().catch(()=>({})); setParsedNote(`API error ${res.status}: ${e.error?.message||"Check your API key in Settings."}`); setParsingFile(false); return; }
-      const data=await res.json();
-      const text=data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"{}";
-      const parsed=JSON.parse(text.replace(/```json\n?|```/g,"").trim());
+      const form=new FormData(); form.append("file",file);
+      const res=await fetch("/api/parse-document",{method:"POST",body:form});
+      if(!res.ok){ const e=await res.json().catch(()=>({})); setParsedNote(`Parse error ${res.status}: ${e.error||"Ollama unavailable — is it running?"}`); setParsingFile(false); return; }
+      const {parsed}=await res.json();
       let filled=[];
       if(parsed.salary)     { upd("income","salary",parsed.salary);              filled.push("salary"); }
       if(parsed.totalExpenses){ upd("expenses","essentials",parsed.totalExpenses); filled.push("expenses"); }
@@ -2210,6 +2248,76 @@ Respond EXACTLY:
           );
         })}
         {!entries.length&&<div style={{textAlign:"center",padding:48,color:"#6b8299",fontSize:13}}>No history yet</div>}
+      </div>
+    </div>
+  );
+
+  // ── DATABASE ─────────────────────────────────────────────────────────────────
+  if(tab==="database") return(
+    <div className="apex">
+      {showSettings && <SettingsModal/>}
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+      <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
+
+        {/* Action bar */}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+          <button className="ax-btn" onClick={exportDb}><UploadCloud size={12}/> Export Backup</button>
+          <button className="ax-btn" onClick={()=>dbFileRef.current?.click()}><UploadCloud size={12}/> Import Backup</button>
+          <input ref={dbFileRef} type="file" accept=".json" style={{display:"none"}} onChange={importDb}/>
+          {!resetConfirm
+            ? <button className="ax-btn" style={{color:"#ff5252",borderColor:"rgba(255,82,82,.3)"}} onClick={()=>setResetConfirm(true)}><Trash2 size={12}/> Reset Database</button>
+            : <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <span style={{fontSize:11,color:"#ff5252"}}>Wipe all data?</span>
+                <button className="ax-btn" style={{color:"#ff5252",borderColor:"rgba(255,82,82,.4)"}} onClick={resetDb}>Yes, Reset</button>
+                <button className="ax-btn" onClick={()=>setResetConfirm(false)}>Cancel</button>
+              </div>
+          }
+          {dbMsg && <span style={{fontSize:11,color:"#00d4a4",marginLeft:4}}>✓ {dbMsg}</span>}
+        </div>
+
+        {/* Snapshots */}
+        <div className="ax-card">
+          <div style={{fontWeight:600,fontSize:12,marginBottom:12,display:"flex",alignItems:"center",gap:6}}><History size={13}/> Snapshots</div>
+          <div style={{display:"flex",gap:8,marginBottom:12}}>
+            <input className="ax-input" style={{flex:1}} placeholder="Label (e.g. Before big purchase)" value={snapshotLabel} onChange={e=>setSnapshotLabel(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&createSnapshot()}/>
+            <button className="ax-btn primary" onClick={createSnapshot}><Save size={12}/> Save</button>
+          </div>
+          {dbView.snapshots.length===0
+            ? <div style={{fontSize:11,color:"#6b8299",textAlign:"center",padding:"10px 0"}}>No snapshots yet — save one above to create a restore point</div>
+            : dbView.snapshots.map(s=>(
+              <div key={s.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:"1px solid #dde4ee"}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:500}}>{s.month}</div>
+                  <div style={{fontSize:10,color:"#6b8299"}}>{new Date(s.created_at).toLocaleString("en-IN")}</div>
+                </div>
+                <button className="ax-btn" style={{fontSize:11}} onClick={()=>restoreSnapshot(s.id)}><RotateCcw size={11}/> Restore</button>
+                <button className="ax-btn" style={{fontSize:11,color:"#ff5252",padding:"5px 8px"}} onClick={()=>deleteSnapshot(s.id)}><Trash2 size={11}/></button>
+              </div>
+            ))
+          }
+        </div>
+
+        {/* Keys */}
+        <div className="ax-card">
+          <div style={{fontWeight:600,fontSize:12,marginBottom:12,display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}}>
+            <span style={{display:"flex",alignItems:"center",gap:6}}><Database size={13}/> Stored Keys ({dbView.keys.length})</span>
+            <button className="ax-btn" style={{fontSize:10}} onClick={loadDbView}>Refresh</button>
+          </div>
+          {dbView.keys.length===0
+            ? <div style={{fontSize:11,color:"#6b8299",textAlign:"center",padding:"10px 0"}}>No data stored yet</div>
+            : dbView.keys.map(k=>(
+              <div key={k.key} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderTop:"1px solid #dde4ee"}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:11,fontFamily:"monospace",color:"#3d617e"}}>{k.key}</div>
+                  <div style={{fontSize:9,color:"#6b8299"}}>{new Date(k.updated_at).toLocaleString("en-IN")}</div>
+                </div>
+                <button className="ax-btn" style={{fontSize:10,color:"#ff5252",padding:"4px 8px"}} onClick={()=>deleteKey(k.key)}><Trash2 size={11}/></button>
+              </div>
+            ))
+          }
+        </div>
+
       </div>
     </div>
   );
