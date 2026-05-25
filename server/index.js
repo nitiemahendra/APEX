@@ -216,9 +216,14 @@ app.post("/api/parse-document", upload.single("file"), async (req, res) => {
   }
 });
 
-const PORT = 3001;
+// ── Serve built frontend in production ─────────────────────────────────────
+
+const DIST = join(__dirname, "../dist");
+app.use(express.static(DIST));
+app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(join(DIST, "index.html")));
+
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`APEX DB server  →  http://localhost:${PORT}`);
-  console.log(`Database file   →  ${DB_PATH}`);
-  console.log(`Health check    →  http://localhost:${PORT}/api/health`);
+  console.log(`APEX server  →  http://localhost:${PORT}`);
+  console.log(`Database     →  ${DB_PATH}`);
 });
