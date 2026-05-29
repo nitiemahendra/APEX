@@ -4,7 +4,16 @@ services:
     runtime: node
     buildCommand: npm install && npm run build
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DB_PATH
+        value: /data/apex.db
+      - key: ALLOWED_ORIGIN
+        value: https://apex-advisor.onrender.com
     autoDeploy: true
+    disk:
+      name: apex-data
+      mountPath: /data
+      sizeGB: 1

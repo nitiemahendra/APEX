@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { useState, useEffect, useRef, useMemo, Component } from "react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+         LineChart, Line, ReferenceArea, ReferenceLine } from "recharts";
 import {
   TrendingUp, AlertTriangle, Brain, UploadCloud, DollarSign,
   CreditCard, Wallet, ChevronRight, ChevronDown, Loader, Target, Zap,
@@ -10,17 +11,266 @@ import {
   Settings, RotateCcw, X as XIcon, Database
 } from "lucide-react";
 
+// ── MF Comparison Data ────────────────────────────────────────────────────────
+const MF_FUNDS = [
+  // ── Large Cap (10) ──────────────────────────────────────────────────────────
+  { id:"lc_axis",     name:"Axis Bluechip Fund",              shortName:"Axis BC",     manager:"Shreyash Devalkar", house:"Axis AMC",     category:"Large Cap",   baseRet:12.0, vol:13, color:"#4a9eff", aum:"44,800", er:0.56, risk:"Moderate"  },
+  { id:"lc_mirae",    name:"Mirae Asset Large Cap",           shortName:"Mirae LC",    manager:"Gaurav Misra",      house:"Mirae Asset",  category:"Large Cap",   baseRet:12.5, vol:13, color:"#2980b9", aum:"37,200", er:0.52, risk:"Moderate"  },
+  { id:"lc_hdfc",     name:"HDFC Top 100",                    shortName:"HDFC T100",   manager:"Rahul Baijal",      house:"HDFC AMC",     category:"Large Cap",   baseRet:11.8, vol:14, color:"#1a5276", aum:"32,600", er:0.95, risk:"Moderate"  },
+  { id:"lc_icici",    name:"ICICI Pru Bluechip",              shortName:"ICICI BC",    manager:"Anish Tawakley",    house:"ICICI Pru",    category:"Large Cap",   baseRet:12.2, vol:13, color:"#3498db", aum:"42,100", er:0.91, risk:"Moderate"  },
+  { id:"lc_sbi",      name:"SBI Bluechip Fund",               shortName:"SBI BC",      manager:"Sohini Andani",     house:"SBI MF",       category:"Large Cap",   baseRet:11.5, vol:13, color:"#1f618d", aum:"35,800", er:0.85, risk:"Moderate"  },
+  { id:"lc_nippon",   name:"Nippon India Large Cap",          shortName:"Nippon LC",   manager:"Sailesh Raj Bhan",  house:"Nippon India", category:"Large Cap",   baseRet:11.0, vol:14, color:"#5dade2", aum:"19,400", er:0.97, risk:"Moderate"  },
+  { id:"lc_kotak",    name:"Kotak Bluechip Fund",             shortName:"Kotak BC",    manager:"Harsha Upadhyaya",  house:"Kotak AMC",    category:"Large Cap",   baseRet:11.2, vol:13, color:"#1289A7", aum:"5,800",  er:0.91, risk:"Moderate"  },
+  { id:"lc_dsp",      name:"DSP Top 100 Equity",              shortName:"DSP T100",    manager:"Rohit Singhania",   house:"DSP AMC",      category:"Large Cap",   baseRet:11.5, vol:13, color:"#0652DD", aum:"3,400",  er:0.93, risk:"Moderate"  },
+  { id:"lc_canara",   name:"Canara Robeco Bluechip",          shortName:"Canara BC",   manager:"Shridatta Bhandwaldar",house:"Canara Robeco",category:"Large Cap", baseRet:13.0, vol:13, color:"#17a589", aum:"8,900",  er:0.32, risk:"Moderate"  },
+  { id:"lc_franklin", name:"Franklin India Bluechip",         shortName:"Franklin BC", manager:"Anand Radhakrishnan",house:"Franklin Templeton",category:"Large Cap",baseRet:11.0,vol:14, color:"#154360", aum:"7,200",  er:0.95, risk:"Moderate"  },
+  // ── Mid Cap (10) ────────────────────────────────────────────────────────────
+  { id:"mc_hdfc",     name:"HDFC Mid-Cap Opportunities",      shortName:"HDFC MC",     manager:"Chirag Setalvad",   house:"HDFC AMC",     category:"Mid Cap",     baseRet:17.0, vol:19, color:"#c9a84c", aum:"72,180", er:0.85, risk:"High"      },
+  { id:"mc_dsp",      name:"DSP Midcap Fund",                 shortName:"DSP MC",      manager:"Vinit Sambre",      house:"DSP AMC",      category:"Mid Cap",     baseRet:14.5, vol:17, color:"#f39c12", aum:"18,700", er:0.82, risk:"High"      },
+  { id:"mc_kotak",    name:"Kotak Emerging Equity",           shortName:"Kotak MC",    manager:"Pankaj Tibrewal",   house:"Kotak AMC",    category:"Mid Cap",     baseRet:16.0, vol:18, color:"#e67e22", aum:"42,300", er:0.40, risk:"High"      },
+  { id:"mc_axis",     name:"Axis Midcap Fund",                shortName:"Axis MC",     manager:"Shreyash Devalkar", house:"Axis AMC",     category:"Mid Cap",     baseRet:15.5, vol:17, color:"#d4ac0d", aum:"23,100", er:0.53, risk:"High"      },
+  { id:"mc_nippon",   name:"Nippon India Growth Fund",        shortName:"Nippon GF",   manager:"Manish Gunwani",    house:"Nippon India", category:"Mid Cap",     baseRet:14.0, vol:18, color:"#B7950B", aum:"25,800", er:0.98, risk:"High"      },
+  { id:"mc_franklin", name:"Franklin India Prima Fund",       shortName:"Franklin MC", manager:"R. Janakiraman",    house:"Franklin Templeton",category:"Mid Cap", baseRet:14.5, vol:18, color:"#E59866", aum:"8,200",  er:0.96, risk:"High"      },
+  { id:"mc_mirae",    name:"Mirae Asset Midcap Fund",         shortName:"Mirae MC",    manager:"Ankit Jain",        house:"Mirae Asset",  category:"Mid Cap",     baseRet:15.0, vol:18, color:"#dc7633", aum:"11,400", er:0.55, risk:"High"      },
+  { id:"mc_sbi",      name:"SBI Magnum Midcap Fund",          shortName:"SBI MC",      manager:"Sohini Andani",     house:"SBI MF",       category:"Mid Cap",     baseRet:15.5, vol:18, color:"#ca6f1e", aum:"17,600", er:0.89, risk:"High"      },
+  { id:"mc_pgim",     name:"PGIM India Midcap Opp",           shortName:"PGIM MC",     manager:"Aniruddha Naha",    house:"PGIM India",   category:"Mid Cap",     baseRet:17.0, vol:20, color:"#A04000", aum:"9,800",  er:0.42, risk:"High"      },
+  { id:"mc_edelweiss",name:"Edelweiss Midcap Fund",           shortName:"Edelweiss MC",manager:"Trideep Bhattacharya",house:"Edelweiss",  category:"Mid Cap",     baseRet:16.0, vol:19, color:"#935116", aum:"5,600",  er:0.41, risk:"High"      },
+  // ── Small Cap (10) ──────────────────────────────────────────────────────────
+  { id:"sc_sbi",      name:"SBI Small Cap Fund",              shortName:"SBI SC",      manager:"R. Srinivasan",     house:"SBI MF",       category:"Small Cap",   baseRet:18.5, vol:23, color:"#ff8c42", aum:"28,600", er:0.68, risk:"Very High" },
+  { id:"sc_nippon",   name:"Nippon India Small Cap",          shortName:"Nippon SC",   manager:"Samir Rachh",       house:"Nippon India", category:"Small Cap",   baseRet:19.5, vol:25, color:"#ff5252", aum:"55,200", er:0.72, risk:"Very High" },
+  { id:"sc_kotak",    name:"Kotak Small Cap Fund",            shortName:"Kotak SC",    manager:"Pankaj Tibrewal",   house:"Kotak AMC",    category:"Small Cap",   baseRet:18.0, vol:23, color:"#e74c3c", aum:"14,800", er:0.44, risk:"Very High" },
+  { id:"sc_axis",     name:"Axis Small Cap Fund",             shortName:"Axis SC",     manager:"Anupam Tiwari",     house:"Axis AMC",     category:"Small Cap",   baseRet:17.5, vol:22, color:"#c0392b", aum:"21,600", er:0.55, risk:"Very High" },
+  { id:"sc_hdfc",     name:"HDFC Small Cap Fund",             shortName:"HDFC SC",     manager:"Chirag Setalvad",   house:"HDFC AMC",     category:"Small Cap",   baseRet:18.0, vol:23, color:"#ff6b6b", aum:"28,400", er:0.64, risk:"Very High" },
+  { id:"sc_franklin", name:"Franklin India Smaller Cos",      shortName:"Franklin SC", manager:"R. Janakiraman",    house:"Franklin Templeton",category:"Small Cap",baseRet:17.0,vol:23, color:"#cb4335", aum:"11,400", er:0.97, risk:"Very High" },
+  { id:"sc_dsp",      name:"DSP Small Cap Fund",              shortName:"DSP SC",      manager:"Vinit Sambre",      house:"DSP AMC",      category:"Small Cap",   baseRet:17.5, vol:22, color:"#d35400", aum:"12,600", er:0.63, risk:"Very High" },
+  { id:"sc_canara",   name:"Canara Robeco Small Cap",         shortName:"Canara SC",   manager:"Shridatta Bhandwaldar",house:"Canara Robeco",category:"Small Cap",baseRet:19.0, vol:24, color:"#eb984e", aum:"9,200",  er:0.33, risk:"Very High" },
+  { id:"sc_icici",    name:"ICICI Pru Smallcap Fund",         shortName:"ICICI SC",    manager:"Harish Bihani",     house:"ICICI Pru",    category:"Small Cap",   baseRet:17.0, vol:23, color:"#e67e22", aum:"7,800",  er:0.96, risk:"Very High" },
+  { id:"sc_quant",    name:"Quant Small Cap Fund",            shortName:"Quant SC",    manager:"Ankit Pande",       house:"Quant AMC",    category:"Small Cap",   baseRet:21.0, vol:27, color:"#922b21", aum:"24,800", er:0.64, risk:"Very High" },
+  // ── Flexi Cap (10) ──────────────────────────────────────────────────────────
+  { id:"fc_ppfas",    name:"Parag Parikh Flexi Cap",          shortName:"PPFCF",       manager:"Rajeev Thakkar",    house:"PPFAS MF",     category:"Flexi Cap",   baseRet:14.5, vol:14, color:"#7f77dd", aum:"65,240", er:0.57, risk:"Moderate"  },
+  { id:"fc_hdfc",     name:"HDFC Flexi Cap Fund",             shortName:"HDFC FC",     manager:"Gopal Agrawal",     house:"HDFC AMC",     category:"Flexi Cap",   baseRet:13.5, vol:15, color:"#9b59b6", aum:"58,400", er:0.84, risk:"Moderate"  },
+  { id:"fc_kotak",    name:"Kotak Flexi Cap Fund",            shortName:"Kotak FC",    manager:"Harsha Upadhyaya",  house:"Kotak AMC",    category:"Flexi Cap",   baseRet:13.0, vol:14, color:"#8e44ad", aum:"46,800", er:0.53, risk:"Moderate"  },
+  { id:"fc_uti",      name:"UTI Flexi Cap Fund",              shortName:"UTI FC",      manager:"Ajay Tyagi",        house:"UTI AMC",      category:"Flexi Cap",   baseRet:13.5, vol:15, color:"#6c3483", aum:"24,100", er:0.91, risk:"Moderate"  },
+  { id:"fc_franklin", name:"Franklin India Flexi Cap",        shortName:"Franklin FC", manager:"R. Janakiraman",    house:"Franklin Templeton",category:"Flexi Cap",baseRet:13.0,vol:15, color:"#5f27cd", aum:"14,200", er:0.95, risk:"Moderate"  },
+  { id:"fc_dsp",      name:"DSP Flexi Cap Fund",              shortName:"DSP FC",      manager:"Atul Bhole",        house:"DSP AMC",      category:"Flexi Cap",   baseRet:13.5, vol:14, color:"#a569bd", aum:"9,600",  er:0.74, risk:"Moderate"  },
+  { id:"fc_canara",   name:"Canara Robeco Flexi Cap",         shortName:"Canara FC",   manager:"Shridatta Bhandwaldar",house:"Canara Robeco",category:"Flexi Cap",baseRet:14.0, vol:14, color:"#7d3c98", aum:"11,200", er:0.35, risk:"Moderate"  },
+  { id:"fc_pgim",     name:"PGIM India Flexi Cap",            shortName:"PGIM FC",     manager:"Vivek Mehta",       house:"PGIM India",   category:"Flexi Cap",   baseRet:14.5, vol:15, color:"#9980fa", aum:"6,400",  er:0.46, risk:"Moderate"  },
+  { id:"fc_quant",    name:"Quant Flexi Cap Fund",            shortName:"Quant FC",    manager:"Ankit Pande",       house:"Quant AMC",    category:"Flexi Cap",   baseRet:16.0, vol:17, color:"#6a0dad", aum:"4,800",  er:0.59, risk:"Moderate"  },
+  { id:"fc_absl",     name:"ABSL Flexi Cap Fund",             shortName:"ABSL FC",     manager:"Mahesh Patil",      house:"ABSL AMC",     category:"Flexi Cap",   baseRet:13.0, vol:14, color:"#b267e6", aum:"17,600", er:0.85, risk:"Moderate"  },
+  // ── Large & Mid (10) ────────────────────────────────────────────────────────
+  { id:"lm_mirae",    name:"Mirae Emerging Bluechip",         shortName:"Mirae EB",    manager:"Neelesh Surana",    house:"Mirae Asset",  category:"Large & Mid", baseRet:16.0, vol:17, color:"#00d4a4", aum:"38,450", er:0.62, risk:"High"      },
+  { id:"lm_canara",   name:"Canara Robeco Emg Equities",      shortName:"Canara EM",   manager:"Shridatta Bhandwaldar",house:"Canara Robeco",category:"Large & Mid",baseRet:15.5,vol:16, color:"#1abc9c", aum:"21,400", er:0.35, risk:"High"      },
+  { id:"lm_kotak",    name:"Kotak Equity Opportunities",      shortName:"Kotak EO",    manager:"Harsha Upadhyaya",  house:"Kotak AMC",    category:"Large & Mid", baseRet:15.0, vol:16, color:"#16a085", aum:"19,800", er:0.45, risk:"High"      },
+  { id:"lm_dsp",      name:"DSP Equity Opportunities",        shortName:"DSP EO",      manager:"Rohit Singhania",   house:"DSP AMC",      category:"Large & Mid", baseRet:14.5, vol:16, color:"#117a65", aum:"7,200",  er:0.91, risk:"High"      },
+  { id:"lm_invesco",  name:"Invesco India Growth Opp",        shortName:"Invesco GO",  manager:"Taher Badshah",     house:"Invesco India",category:"Large & Mid", baseRet:15.0, vol:16, color:"#0e6655", aum:"4,600",  er:0.68, risk:"High"      },
+  { id:"lm_hdfc",     name:"HDFC Large & Mid Cap",            shortName:"HDFC L&M",    manager:"Gopal Agrawal",     house:"HDFC AMC",     category:"Large & Mid", baseRet:14.0, vol:16, color:"#2ecc71", aum:"22,600", er:0.88, risk:"High"      },
+  { id:"lm_sbi",      name:"SBI Large & Midcap Fund",         shortName:"SBI L&M",     manager:"Sohini Andani",     house:"SBI MF",       category:"Large & Mid", baseRet:14.0, vol:16, color:"#27ae60", aum:"14,800", er:0.83, risk:"High"      },
+  { id:"lm_axis",     name:"Axis Growth Opportunities",       shortName:"Axis GO",     manager:"Shreyash Devalkar", house:"Axis AMC",     category:"Large & Mid", baseRet:15.5, vol:17, color:"#1e8449", aum:"8,900",  er:0.55, risk:"High"      },
+  { id:"lm_tata",     name:"Tata Large & Mid Cap",            shortName:"Tata L&M",    manager:"Chandraprakash Padiyar",house:"Tata AMC", category:"Large & Mid", baseRet:14.5, vol:16, color:"#58d68d", aum:"6,400",  er:0.34, risk:"High"      },
+  { id:"lm_pgim",     name:"PGIM India Large & Midcap",       shortName:"PGIM L&M",    manager:"Aniruddha Naha",    house:"PGIM India",   category:"Large & Mid", baseRet:15.0, vol:17, color:"#196f3d", aum:"3,800",  er:0.44, risk:"High"      },
+  // ── Multi Asset (10) ────────────────────────────────────────────────────────
+  { id:"ma_icici",    name:"ICICI Pru Multi-Asset Fund",      shortName:"ICICI MA",    manager:"Sankaran Naren",    house:"ICICI Pru",    category:"Multi Asset", baseRet:11.5, vol:11, color:"#d4537e", aum:"47,900", er:0.79, risk:"Moderate"  },
+  { id:"ma_hdfc",     name:"HDFC Multi-Asset Fund",           shortName:"HDFC MA",     manager:"Gopal Agrawal",     house:"HDFC AMC",     category:"Multi Asset", baseRet:10.5, vol:10, color:"#c2185b", aum:"3,600",  er:0.95, risk:"Moderate"  },
+  { id:"ma_nippon",   name:"Nippon Multi Asset Allocation",   shortName:"Nippon MA",   manager:"Manish Gunwani",    house:"Nippon India", category:"Multi Asset", baseRet:10.0, vol:10, color:"#ad1457", aum:"2,800",  er:0.97, risk:"Moderate"  },
+  { id:"ma_axis",     name:"Axis Multi Asset Allocation",     shortName:"Axis MA",     manager:"Jinesh Gopani",     house:"Axis AMC",     category:"Multi Asset", baseRet:10.8, vol:11, color:"#e91e63", aum:"1,900",  er:0.58, risk:"Moderate"  },
+  { id:"ma_quant",    name:"Quant Multi Asset Fund",          shortName:"Quant MA",    manager:"Ankit Pande",       house:"Quant AMC",    category:"Multi Asset", baseRet:12.5, vol:12, color:"#f06292", aum:"2,400",  er:0.67, risk:"Moderate"  },
+  { id:"ma_motilal",  name:"Motilal Oswal Multi Asset",       shortName:"Motilal MA",  manager:"Siddharth Bothra",  house:"Motilal Oswal",category:"Multi Asset", baseRet:11.0, vol:11, color:"#ec407a", aum:"1,400",  er:0.52, risk:"Moderate"  },
+  { id:"ma_dsp",      name:"DSP Multi Asset Allocation",      shortName:"DSP MA",      manager:"Atul Bhole",        house:"DSP AMC",      category:"Multi Asset", baseRet:10.5, vol:10, color:"#9c1b5b", aum:"1,800",  er:0.86, risk:"Moderate"  },
+  { id:"ma_tata",     name:"Tata Multi Asset Opp Fund",       shortName:"Tata MA",     manager:"Sailesh Jain",      house:"Tata AMC",     category:"Multi Asset", baseRet:11.0, vol:11, color:"#e95e8e", aum:"1,600",  er:0.49, risk:"Moderate"  },
+  { id:"ma_sbi",      name:"SBI Multi Asset Allocation",      shortName:"SBI MA",      manager:"Dinesh Ahuja",      house:"SBI MF",       category:"Multi Asset", baseRet:10.5, vol:10, color:"#b03060", aum:"2,200",  er:0.44, risk:"Moderate"  },
+  { id:"ma_uti",      name:"UTI Multi Asset Allocation",      shortName:"UTI MA",      manager:"Vetri Subramaniam", house:"UTI AMC",      category:"Multi Asset", baseRet:11.0, vol:11, color:"#880e4f", aum:"1,600",  er:0.72, risk:"Moderate"  },
+];
+
+const MF_EVENTS = [
+  // ── Market crashes & financial crises ──────────────────────────────────────
+  { id:"china",    label:"China Meltdown",        start:"2015-08", end:"2016-02", cat:"Global",    desc:"Chinese stock crash · global EM rout · commodity slump",         fill:"rgba(255,140,66,.18)", stroke:"#ff8c42" },
+  { id:"demonet",  label:"Demonetization",         start:"2016-11", end:"2017-01", cat:"Policy",    desc:"Rs 500/1000 notes banned overnight · cash crunch · GDP shock",   fill:"rgba(127,119,221,.18)", stroke:"#7f77dd" },
+  { id:"ltcg",     label:"LTCG Tax (Budget 2018)", start:"2018-01", end:"2018-03", cat:"Policy",    desc:"Budget 2018 reintroduced 10% LTCG on equity · market selloff",  fill:"rgba(127,119,221,.18)", stroke:"#7f77dd" },
+  { id:"tradwar",  label:"US–China Trade War",     start:"2018-07", end:"2018-10", cat:"Global",    desc:"Peak tariff escalation · INR hit ₹74/$ · FII outflows",          fill:"rgba(255,140,66,.18)", stroke:"#ff8c42" },
+  { id:"ilfs",     label:"IL&FS / NBFC Crisis",    start:"2018-09", end:"2019-02", cat:"Financial", desc:"Shadow banking collapse · credit freeze · midcap rout",          fill:"rgba(255,52,52,.18)",  stroke:"#ff3434" },
+  { id:"ele2019",  label:"2019 General Election",  start:"2019-03", end:"2019-05", cat:"Election",  desc:"Pre-election jitters → BJP landslide → sharp post-result rally", fill:"rgba(0,212,164,.13)",  stroke:"#00d4a4" },
+  { id:"usiran",   label:"US–Iran War Scare",       start:"2019-12", end:"2020-01", cat:"War",       desc:"US kills Soleimani · Iran missile strikes on US bases · oil spike · World War 3 fears", fill:"rgba(180,0,0,.18)", stroke:"#b40000" },
+  { id:"covid",    label:"COVID-19 Crash",          start:"2020-02", end:"2020-04", cat:"Pandemic",  desc:"Global pandemic declared · Nifty fell 38% in 6 weeks",           fill:"rgba(255,52,52,.22)",  stroke:"#ff3434" },
+  { id:"covid2",   label:"COVID 2nd Wave",          start:"2021-03", end:"2021-06", cat:"Pandemic",  desc:"Delta variant devastates India · localised lockdowns",            fill:"rgba(255,82,82,.14)",  stroke:"#ff5252" },
+  { id:"ratehike", label:"Fed Rate Hike Cycle",     start:"2022-01", end:"2022-07", cat:"Policy",    desc:"Fed hikes 11 times · FII sold ₹2.5L Cr · EM selloff",           fill:"rgba(127,119,221,.18)", stroke:"#7f77dd" },
+  { id:"ukraine",  label:"Russia–Ukraine War",      start:"2022-02", end:"2022-04", cat:"War",       desc:"Full-scale invasion · Brent to $130 · global inflation shock",   fill:"rgba(180,0,0,.18)",    stroke:"#b40000" },
+  { id:"adani",    label:"Adani–Hindenburg",        start:"2023-01", end:"2023-03", cat:"Financial", desc:"Short-seller attack · ₹10L Cr market cap wiped · contagion fear",fill:"rgba(255,52,52,.18)",  stroke:"#ff3434" },
+  { id:"svb",      label:"Global Banking Scare",    start:"2023-03", end:"2023-05", cat:"Financial", desc:"SVB & Credit Suisse collapse · global banking stress",           fill:"rgba(255,52,52,.18)",  stroke:"#ff3434" },
+  { id:"ele2024",  label:"2024 General Election",   start:"2024-04", end:"2024-06", cat:"Election",  desc:"Modi 3.0 · BJP lost majority · Nifty fell 5% on results day",   fill:"rgba(0,212,164,.13)",  stroke:"#00d4a4" },
+  { id:"usiran2",  label:"US–Iran War (Ongoing)",   start:"2024-04", end:"2025-05", cat:"War",       desc:"Iran direct missile/drone attack on Israel · US active air defense · Red Sea shipping disruptions · Strait of Hormuz risk · oil volatility", fill:"rgba(180,0,0,.22)", stroke:"#b40000", ongoing:true },
+];
+
+const MF_EVENT_CATS = {
+  Policy:    { color:"#7f77dd", bg:"rgba(127,119,221,.12)" },
+  Global:    { color:"#ff8c42", bg:"rgba(255,140,66,.12)"  },
+  Financial: { color:"#ff5252", bg:"rgba(255,82,82,.12)"   },
+  Election:  { color:"#00d4a4", bg:"rgba(0,212,164,.12)"   },
+  War:       { color:"#b40000", bg:"rgba(180,0,0,.12)"     },
+  Pandemic:  { color:"#d4537e", bg:"rgba(212,83,126,.12)"  },
+};
+
+function seededRand(seed) {
+  let s = (seed ^ 0xdeadbeef) >>> 0;
+  return () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+function genNavHistory(fund) {
+  const rng = seededRand(fund.id.split("").reduce((a,c,i)=>a+c.charCodeAt(0)*(i+1),0));
+  const turbMap = {};
+  MF_EVENTS.forEach(ev => {
+    const [sy,sm]=ev.start.split("-").map(Number), [ey,em]=ev.end.split("-").map(Number);
+    let yr=sy,mo=sm;
+    while(yr<ey||(yr===ey&&mo<=em)){turbMap[`${yr}-${String(mo).padStart(2,"0")}`]=true;mo++;if(mo>12){mo=1;yr++;}}
+  });
+  const sigmaM=(fund.vol/100)/Math.sqrt(12), muM=(fund.baseRet/1200)-0.5*sigmaM*sigmaM;
+  let nav=100; const result=[]; let yr=2015,mo=1;
+  while(yr<2025||(yr===2025&&mo<=5)){
+    const key=`${yr}-${String(mo).padStart(2,"0")}`;
+    const u1=Math.max(rng(),1e-10),u2=rng();
+    const z=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+    let ret=muM+z*sigmaM;
+    if(turbMap[key]) ret-=0.025+rng()*0.025;
+    nav*=Math.exp(ret); result.push({month:key,nav:Math.round(nav*100)/100});
+    mo++;if(mo>12){mo=1;yr++;}
+  }
+  return result;
+}
+
+const MF_NAV={};
+MF_FUNDS.forEach(f=>{MF_NAV[f.id]=genNavHistory(f);});
+
+// ── Benchmark Indices ─────────────────────────────────────────────────────────
+const BENCHMARKS = [
+  {id:"nifty50",     name:"Nifty 50",           shortName:"Nifty 50",     baseRet:12.0, vol:15, color:"#1a2e4a", type:"Large Cap"},
+  {id:"nifty500",    name:"Nifty 500",           shortName:"Nifty 500",    baseRet:13.5, vol:16, color:"#2980b9", type:"Broad"},
+  {id:"midcap150",   name:"Nifty Midcap 150",    shortName:"Midcap 150",   baseRet:15.5, vol:20, color:"#c9a84c", type:"Mid Cap"},
+  {id:"smallcap250", name:"Nifty Smallcap 250",  shortName:"Smallcap 250", baseRet:16.5, vol:24, color:"#ff8c42", type:"Small Cap"},
+  {id:"next50",      name:"Nifty Next 50",        shortName:"Next 50",      baseRet:13.0, vol:17, color:"#7f77dd", type:"Large Cap"},
+  {id:"sensex",      name:"BSE Sensex",           shortName:"Sensex",       baseRet:11.8, vol:14, color:"#00d4a4", type:"Large Cap"},
+];
+const BENCH_NAV={};
+BENCHMARKS.forEach(b=>{BENCH_NAV[b.id]=genNavHistory(b);});
+
+// ── Risk Metric Helpers ───────────────────────────────────────────────────────
+const RF_M = 0.07/12;
+function bkRets(navs){return navs.slice(1).map((d,i)=>(d.nav-navs[i].nav)/navs[i].nav);}
+function bkCAGR(r){if(!r.length)return 0;return parseFloat(((Math.pow(r.reduce((a,v)=>a*(1+v),1),12/r.length)-1)*100).toFixed(1));}
+function bkVol(r){if(!r.length)return 0;const m=r.reduce((a,v)=>a+v,0)/r.length;return parseFloat((Math.sqrt(r.reduce((a,v)=>a+Math.pow(v-m,2),0)/r.length)*Math.sqrt(12)*100).toFixed(1));}
+function bkSharpe(r){const ex=r.map(v=>v-RF_M);const m=ex.reduce((a,v)=>a+v,0)/ex.length;const s=Math.sqrt(ex.reduce((a,v)=>a+Math.pow(v-m,2),0)/ex.length);return s===0?0:parseFloat(((m/s)*Math.sqrt(12)).toFixed(2));}
+function bkSortino(r){const ex=r.map(v=>v-RF_M);const m=ex.reduce((a,v)=>a+v,0)/ex.length;const d=ex.filter(v=>v<0);if(!d.length)return parseFloat((5).toFixed(2));const ds=Math.sqrt(d.reduce((a,v)=>a+v*v,0)/d.length);return parseFloat(((m/ds)*Math.sqrt(12)).toFixed(2));}
+function bkBeta(fr,br){const n=Math.min(fr.length,br.length);const f=fr.slice(-n),b=br.slice(-n);const fm=f.reduce((a,v)=>a+v,0)/n,bm=b.reduce((a,v)=>a+v,0)/n;const cov=f.reduce((a,v,i)=>a+(v-fm)*(b[i]-bm),0)/(n-1);const bv=b.reduce((a,v)=>a+Math.pow(v-bm,2),0)/(n-1);return bv===0?1:parseFloat((cov/bv).toFixed(2));}
+function bkAlpha(fr,br){const n=Math.min(fr.length,br.length);const b=bkBeta(fr.slice(-n),br.slice(-n));const fa=bkCAGR(fr.slice(-n)),ba=bkCAGR(br.slice(-n)),rf=RF_M*12*100;return parseFloat((fa-(rf+b*(ba-rf))).toFixed(2));}
+function bkMaxDD(navs){let pk=-Infinity,mx=0;for(const d of navs){if(d.nav>pk)pk=d.nav;const dd=(d.nav-pk)/pk*100;if(dd<mx)mx=dd;}return parseFloat(mx.toFixed(1));}
+function bkIR(fr,br){const n=Math.min(fr.length,br.length);const ar=fr.slice(-n).map((v,i)=>v-br[br.length-n+i]);const m=ar.reduce((a,v)=>a+v,0)/n;const te=Math.sqrt(ar.reduce((a,v)=>a+Math.pow(v-m,2),0)/(n-1))*Math.sqrt(12);return te===0?0:parseFloat(((m*12)/te).toFixed(2));}
+function bkDDSeries(navs){let pk=-Infinity;return navs.map(d=>{if(d.nav>pk)pk=d.nav;return{month:d.month,dd:parseFloat(((d.nav-pk)/pk*100).toFixed(2))};});}
+function bkRolling(navs,w=12){return navs.slice(w).map((d,i)=>({month:d.month,val:parseFloat(((d.nav/navs[i].nav-1)*100).toFixed(1))}));}
+function bkProject(corpus,monthly,annRet,years){const r=annRet/100;if(r<=0)return corpus+monthly*12*years;const g=Math.pow(1+r,years);return Math.round(corpus*g+monthly*12*((g-1)/r));}
+
+function mfCAGR(navData,years){
+  const n=navData.length,months=Math.min(years*12,n-1);
+  if(months<1)return null;
+  const start=navData[n-1-months]?.nav,end=navData[n-1]?.nav;
+  if(!start||!end)return null;
+  return ((Math.pow(end/start,12/months)-1)*100).toFixed(1);
+}
+
+// ── App Modes ─────────────────────────────────────────────────────────────────
+const APP_MODES = [
+  {id:"beginner",     label:"Beginner",    color:"#00d4a4", bg:"rgba(0,212,164,.1)",  desc:"Plain English"},
+  {id:"intermediate", label:"Intermediate", color:"#c9a84c", bg:"rgba(201,168,76,.1)", desc:"Standard Analytics"},
+  {id:"pro",          label:"Pro / Quant", color:"#7f77dd", bg:"rgba(127,119,221,.1)",desc:"Quant Analytics"},
+];
+
+function fundGrade(cagr10, alpha) {
+  const s=Math.min(100,Math.max(0,(cagr10/24)*50+Math.min(50,(alpha/6)*50)));
+  if(s>75) return {grade:"A+",color:"#00d4a4",stars:5,label:"Excellent"};
+  if(s>60) return {grade:"A", color:"#00d4a4",stars:4,label:"Very Good"};
+  if(s>45) return {grade:"B+",color:"#c9a84c",stars:3,label:"Good"};
+  if(s>30) return {grade:"B", color:"#ff8c42",stars:2,label:"Average"};
+  return            {grade:"C", color:"#ff5252",stars:1,label:"Below Average"};
+}
+function riskBand(vol, maxDD) {
+  if(vol<13&&maxDD>-20) return {label:"Low Risk",      color:"#00d4a4",emoji:"🟢",tip:"Relatively stable fund"};
+  if(vol<18&&maxDD>-30) return {label:"Medium Risk",   color:"#c9a84c",emoji:"🟡",tip:"Some fluctuation expected"};
+  if(vol<24&&maxDD>-45) return {label:"High Risk",     color:"#ff8c42",emoji:"🟠",tip:"Can drop 30-40% in bad years"};
+  return                        {label:"Very High Risk",color:"#ff5252",emoji:"🔴",tip:"Can drop 40-50%+ in crashes"};
+}
+function investorType(category="") {
+  const c=category.toLowerCase();
+  if(c.includes("large")) return "Conservative investors · 3+ years";
+  if(c.includes("multi")) return "Balanced investors · 3+ years";
+  if(c.includes("flexi")) return "Balanced investors · 5+ years";
+  if(c.includes("mid"))   return "Aggressive investors · 7+ years";
+  if(c.includes("small")) return "Very aggressive investors · 10+ years";
+  return "Long-term SIP investors";
+}
+
+// ── Beginner Health Card ───────────────────────────────────────────────────────
+function BeginnerHealthCard({ entries, goals }) {
+  if(!entries?.length) return null;
+  const l=entries[entries.length-1];
+  const totalIncome=(l.income?.salary||0)+(l.income?.business||0)+(l.income?.rental||0);
+  const totalExp=(l.expenses?.essentials||0)+(l.expenses?.discretionary||0)+(l.expenses?.emi||0);
+  const savings=totalIncome-totalExp;
+  const savePct=totalIncome>0?Math.round(savings/totalIncome*100):0;
+  const totalLoans=Object.values(l.loans||{}).reduce((a,v)=>a+v,0);
+  const totalInv=Object.values(l.investments||{}).reduce((a,v)=>a+v,0);
+  let score=40;
+  if(savePct>=20) score+=20; else if(savePct>10) score+=10;
+  if(goals?.length>0) score+=10;
+  if(totalInv>0) score+=15;
+  if(l.netWorth>0) score+=10;
+  if(totalLoans>totalInv) score-=15;
+  score=Math.round(Math.max(0,Math.min(100,score)));
+  const sc=score>=70?"#00d4a4":score>=50?"#c9a84c":"#ff5252";
+  const sl=score>=70?"HEALTHY":score>=50?"MODERATE":"NEEDS WORK";
+  const items=[
+    {q:"Is my money growing?",    a:totalInv>0?"YES ✅":"Start investing",      d:totalInv>0?`MF + investments: ${fmt(totalInv)}`:"Open a SIP to start building wealth",    c:totalInv>0?"#00d4a4":"#ff8c42"},
+    {q:"Am I saving enough?",     a:savePct>=20?"YES ✅":savePct>10?"COULD BE BETTER 🟡":"IMPROVE ❌", d:`Saving ~${savePct}% of income · target: 20%+`,  c:savePct>=20?"#00d4a4":savePct>10?"#c9a84c":"#ff5252"},
+    {q:"Do I have goals?",        a:goals?.length>0?`YES ✅ (${goals.length} goal${goals.length>1?"s":""})`:"NOT SET ❌", d:goals?.length>0?"Keep tracking your milestones":"Go to Goals tab → set financial targets", c:goals?.length>0?"#00d4a4":"#ff8c42"},
+    {q:"Is my debt manageable?",  a:totalLoans===0?"NO DEBT ✅":totalLoans<totalInv?"MANAGEABLE 🟡":"REVIEW ⚠️", d:totalLoans>0?`Total loans: ${fmt(totalLoans)}`:"Debt-free — great discipline!",            c:totalLoans===0?"#00d4a4":totalLoans<totalInv?"#c9a84c":"#ff5252"},
+  ];
+  return (
+    <div className="ax-card" style={{padding:"16px 18px",borderLeft:`4px solid ${sc}`,marginBottom:0}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:12}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:"#1a2433"}}>Your Financial Health Check</div>
+          <div style={{fontSize:10,color:"#6b8299"}}>Quick overview · switch to Investor or Pro mode for full analytics</div>
+        </div>
+        <div style={{textAlign:"center",padding:"8px 16px",borderRadius:10,background:`${sc}12`,border:`2px solid ${sc}40`,flexShrink:0}}>
+          <div style={{fontSize:26,fontWeight:800,color:sc,lineHeight:1}}>{score}</div>
+          <div style={{fontSize:9,fontWeight:700,color:sc}}>{sl}</div>
+          <div style={{fontSize:8,color:"#6b8299"}}>out of 100</div>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {items.map(it=>(
+          <div key={it.q} style={{flex:"1 1 170px",padding:"10px 12px",borderRadius:8,background:`${it.c}08`,border:`1px solid ${it.c}30`}}>
+            <div style={{fontSize:9,color:"#6b8299",marginBottom:3}}>{it.q}</div>
+            <div style={{fontSize:12,fontWeight:700,color:it.c,marginBottom:2}}>{it.a}</div>
+            <div style={{fontSize:9,color:"#3d617e",lineHeight:1.4}}>{it.d}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const DEFAULT_GOAL = 10_000_000;
-const CLAUDE_API = "https://api.anthropic.com/v1/messages";
-const MODEL      = "claude-sonnet-4-20250514";
 const CUR_YEAR   = new Date().getFullYear();
 const MC_SIMS    = 1000;
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 async function load(key) {
-  try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; } catch { return null; }
+  try {
+    if (!window.storage) return null;
+    const r = await window.storage.get(key);
+    return r ? JSON.parse(r.value) : null;
+  } catch { return null; }
 }
-async function persist(key, val) { try { await window.storage.set(key, JSON.stringify(val)); } catch {} }
+async function persist(key, val) {
+  try { if (window.storage) await window.storage.set(key, JSON.stringify(val)); } catch {}
+}
 
 // ── Pure math ─────────────────────────────────────────────────────────────────
 function calcInflated(amount, inflRate, years) {
@@ -76,7 +326,7 @@ function calcTermPremium(age, coverAmount) {
 function monthKey() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
 function fmtML(key) { const [y,m]=key.split("-"); return new Date(+y,+m-1,1).toLocaleDateString("en-IN",{month:"short",year:"numeric"}); }
 function fmt(n) {
-  if (!n && n!==0) return "₹0";
+  if (!n && n !== 0 || isNaN(n) || !isFinite(n)) return "₹0";
   const abs = Math.abs(n), sign = n < 0 ? "-" : "";
   if (abs>=1e7) return `${sign}₹${(abs/1e7).toFixed(2)}Cr`;
   if (abs>=1e5) return `${sign}₹${(abs/1e5).toFixed(1)}L`;
@@ -274,6 +524,1819 @@ function calcMetrics(entries, goalAmount = DEFAULT_GOAL) {
 function eventUrgency(year) { const y=year-CUR_YEAR; return y<=2?{color:"#ff5252",label:"Urgent"}:y<=5?{color:"#c9a84c",label:"Soon"}:{color:"#00d4a4",label:"Planned"}; }
 function profileCompleteness(p) { let s=0; if(p.name)s++;if(p.age)s++;if(p.retirementAge)s++;if(p.riskAppetite)s++;if(p.lifeEvents.length>0)s++; return Math.round(s/5*100); }
 
+// ── Benchmark Analysis Tab ────────────────────────────────────────────────────
+function BenchmarkTab({ entries, mode="intermediate" }) {
+  const [subTab, setSubTab]   = useState("overview");
+  const [selFunds, setSelFunds] = useState(new Set(["fc_ppfas","mc_hdfc","lc_axis","sc_sbi"]));
+  const [selBench, setSelBench] = useState("nifty50");
+  const [catFilter, setCatFilter] = useState("all");
+  const [projYears, setProjYears] = useState(10);
+  const [projSIP, setProjSIP]   = useState(25000);
+
+  const toggleFund = id => setSelFunds(prev=>{const s=new Set(prev);if(s.has(id)){if(s.size>1)s.delete(id);}else{if(s.size<6)s.add(id);}return s;});
+  const activeFunds = MF_FUNDS.filter(f=>selFunds.has(f.id));
+  const bench = BENCHMARKS.find(b=>b.id===selBench);
+  const benchNavs = BENCH_NAV[selBench];
+
+  // ── Computed metrics ────────────────────────────────────────────────────────
+  const bRetsAll = useMemo(()=>bkRets(benchNavs),[selBench]);
+
+  const metrics = useMemo(()=>activeFunds.map(f=>{
+    const navs=MF_NAV[f.id], fr=bkRets(navs);
+    const sh=bkSharpe(fr), so=bkSortino(fr), vol=bkVol(fr), cagr=bkCAGR(fr);
+    const beta=bkBeta(fr,bRetsAll), alpha=bkAlpha(fr,bRetsAll);
+    const maxDD=bkMaxDD(navs), ir=bkIR(fr,bRetsAll);
+    const calmar=maxDD!==0?parseFloat((cagr/Math.abs(maxDD)).toFixed(2)):0;
+    const riskScore=Math.round(Math.min(100,Math.max(0,(vol/32)*45+(Math.abs(maxDD)/60)*40+((beta-0.5)/2)*15)));
+    return {fund:f,sh,so,vol,cagr,beta,alpha,maxDD,ir,calmar,riskScore};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }),[selFunds,selBench]);
+
+  const benchMetrics = useMemo(()=>({
+    cagr:bkCAGR(bRetsAll), vol:bkVol(bRetsAll), sh:bkSharpe(bRetsAll), maxDD:bkMaxDD(benchNavs),
+  }),[selBench]);
+
+  // ── Chart data ──────────────────────────────────────────────────────────────
+  const normChartData = useMemo(()=>benchNavs.map((item,idx)=>{
+    const row={month:item.month,[selBench]:Math.round(item.nav/benchNavs[0].nav*10000)/100};
+    activeFunds.forEach(f=>{const fd=MF_NAV[f.id];if(fd[idx])row[f.id]=Math.round(fd[idx].nav/fd[0].nav*10000)/100;});
+    return row;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }),[selFunds,selBench]);
+
+  const ddData = useMemo(()=>{
+    const bdd=bkDDSeries(benchNavs);
+    const fdd={}; activeFunds.forEach(f=>{fdd[f.id]=bkDDSeries(MF_NAV[f.id]);});
+    return benchNavs.map((item,i)=>{
+      const row={month:item.month,[selBench]:bdd[i]?.dd||0};
+      activeFunds.forEach(f=>{row[f.id]=fdd[f.id][i]?.dd||0;});
+      return row;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[selFunds,selBench]);
+
+  const rollData = useMemo(()=>{
+    const br=bkRolling(benchNavs,12);
+    return br.map((item,i)=>{
+      const row={month:item.month,[selBench]:item.val};
+      activeFunds.forEach(f=>{const r=bkRolling(MF_NAV[f.id],12);if(r[i])row[f.id]=r[i].val;});
+      return row;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[selFunds,selBench]);
+
+  const projData = useMemo(()=>{
+    const corpus = entries?.length>0?(entries[entries.length-1]?.investments?.mutualFunds||1000000):1000000;
+    return Array.from({length:projYears},(_,i)=>{
+      const y=i+1, row={year:y};
+      row.passive=bkProject(corpus,projSIP,bench.baseRet-0.1,y);
+      activeFunds.forEach(f=>{row[f.id]=bkProject(corpus,projSIP,f.baseRet-f.er,y);});
+      return row;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[selFunds,selBench,projYears,projSIP,entries]);
+
+  // ── Insights engine ─────────────────────────────────────────────────────────
+  const insights = useMemo(()=>{
+    const ins=[];
+    // Fund-level
+    metrics.forEach(m=>{
+      if(m.sh>1.2) ins.push({t:"positive",msg:`${m.fund.shortName} Sharpe ${m.sh} — excellent risk-adjusted return vs ${bench?.shortName}`});
+      else if(m.sh<0.5) ins.push({t:"warning",msg:`${m.fund.shortName} Sharpe ${m.sh} — weak risk-adjusted return; consider switching`});
+      if(m.alpha>4) ins.push({t:"positive",msg:`${m.fund.shortName} generates ${m.alpha}% alpha annually vs ${bench?.shortName} — genuine outperformance`});
+      else if(m.alpha<-2) ins.push({t:"risk",msg:`${m.fund.shortName} negative alpha ${m.alpha}% — underperforms ${bench?.shortName}; active fees not justified`});
+      if(m.beta>1.3) ins.push({t:"warning",msg:`${m.fund.shortName} Beta ${m.beta} — amplifies every 1% market move by ${m.beta.toFixed(1)}×; high drawdown risk`});
+      if(m.maxDD<-45) ins.push({t:"risk",msg:`${m.fund.shortName} max drawdown ${m.maxDD}% — severe peak-to-trough decline; ensure you can stomach this`});
+      if(m.calmar>0.5) ins.push({t:"positive",msg:`${m.fund.shortName} Calmar ${m.calmar} — strong return per unit of drawdown risk`});
+      if(m.ir>0.5) ins.push({t:"positive",msg:`${m.fund.shortName} Information Ratio ${m.ir} — consistently beats ${bench?.shortName} on a risk-adjusted basis`});
+    });
+    // Portfolio-level
+    const cats=new Set(activeFunds.map(f=>f.category));
+    if(cats.size===1&&activeFunds.length>1) ins.push({t:"warning",msg:`All selected funds are ${[...cats][0]} — no cross-category diversification; high concentration risk`});
+    const avgAlpha=metrics.length?metrics.reduce((a,m)=>a+m.alpha,0)/metrics.length:0;
+    if(avgAlpha<0) ins.push({t:"risk",msg:`Average portfolio alpha vs ${bench?.shortName}: ${avgAlpha.toFixed(1)}% — a passive ${bench?.shortName} index fund would have outperformed`});
+    else if(avgAlpha>3) ins.push({t:"positive",msg:`Average portfolio alpha: +${avgAlpha.toFixed(1)}% — active management is adding real value beyond ${bench?.shortName}`});
+    const highER=activeFunds.filter(f=>f.er>0.9);
+    if(highER.length) ins.push({t:"warning",msg:`${highER.map(f=>f.shortName).join(", ")} have ER>${0.9}% — high costs erode long-term compounding significantly`});
+    return ins.slice(0,8);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[metrics,selBench]);
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  const fmtTick = m=>{const[y,mo]=m.split("-");return mo==="01"?y:mo==="07"?`Jul '${y.slice(2)}`:""};
+  const mc = (v,lo,hi)=>v>=hi?"#00d4a4":v>=lo?"#c9a84c":"#ff5252";
+  const TH = ({children,right,center})=><th style={{textAlign:center?"center":right?"right":"left",padding:"8px 11px",color:"#6b8299",fontWeight:600,fontSize:10,whiteSpace:"nowrap",background:"#f7f9fc"}}>{children}</th>;
+  const TD = ({children,right,center,style={}})=><td style={{padding:"8px 11px",textAlign:center?"center":right?"right":"left",...style}}>{children}</td>;
+
+  return (
+    <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
+
+      {/* Sub-tabs */}
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid #dde4ee"}}>
+        {[{id:"overview",label:"Overview & Metrics"},{id:"risk",label:"Risk Deep Dive"},
+          {id:"avsp",label:"Active vs Passive"},{id:"forecast",label:"Wealth Forecast"}].map(t=>(
+          <button key={t.id} className={`ax-tab${subTab===t.id?" active":""}`}
+            onClick={()=>setSubTab(t.id)} style={{fontSize:11}}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Fund selector */}
+      <div className="ax-card" style={{padding:"12px 14px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:8}}>
+          <span style={{fontSize:11,fontWeight:600,color:"#6b8299"}}>Select Funds</span>
+          <span style={{fontSize:10,color:"#aab8c8"}}>(max 6 · {selFunds.size} selected)</span>
+          <div style={{marginLeft:"auto",display:"flex",gap:3,flexWrap:"wrap"}}>
+            {["all","Large Cap","Mid Cap","Small Cap","Flexi Cap","Large & Mid","Multi Asset"].map(c=>(
+              <button key={c} onClick={()=>setCatFilter(c)} className="ax-btn" style={{
+                fontSize:9,padding:"2px 7px",
+                background:catFilter===c?"#1a2433":"transparent",
+                color:catFilter===c?"#c9a84c":"#6b8299",
+                borderColor:catFilter===c?"#c9a84c":"#dde4ee",fontWeight:catFilter===c?700:400,
+              }}>{c==="all"?"All":c}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",maxHeight:90,overflowY:"auto"}}>
+          {MF_FUNDS.filter(f=>catFilter==="all"||f.category===catFilter).map(f=>{
+            const sel=selFunds.has(f.id);
+            return(
+              <button key={f.id} onClick={()=>toggleFund(f.id)} style={{
+                display:"flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:16,
+                border:`1.5px solid ${sel?f.color:"#dde4ee"}`,background:sel?`${f.color}15`:"transparent",
+                cursor:"pointer",fontSize:10,color:sel?f.color:"#6b8299",fontWeight:sel?600:400,flexShrink:0,
+              }}>
+                <span style={{width:7,height:7,borderRadius:"50%",background:sel?f.color:"#dde4ee"}}/>
+                {f.shortName}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Benchmark selector */}
+      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+        <span style={{fontSize:11,fontWeight:600,color:"#6b8299"}}>Benchmark:</span>
+        {BENCHMARKS.map(b=>(
+          <button key={b.id} onClick={()=>setSelBench(b.id)} className="ax-btn" style={{
+            fontSize:10,padding:"4px 10px",
+            background:selBench===b.id?b.color:"transparent",
+            color:selBench===b.id?"#fff":b.color,
+            borderColor:b.color,fontWeight:selBench===b.id?700:400,
+          }}>{b.shortName}</button>
+        ))}
+      </div>
+
+      {/* ── OVERVIEW & METRICS ── */}
+      {subTab==="overview" && <>
+        {/* Benchmark reference strip */}
+        <div style={{padding:"10px 14px",borderRadius:8,border:`2px solid ${bench?.color}40`,background:`${bench?.color}08`,
+          display:"flex",gap:20,flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{fontSize:11,fontWeight:700,color:bench?.color}}>{bench?.name} · {bench?.type}</span>
+          {[{l:"10Y CAGR",v:`${benchMetrics.cagr}%`},{l:"Volatility",v:`${benchMetrics.vol}%`},
+            {l:"Sharpe",v:benchMetrics.sh},{l:"Max DD",v:`${benchMetrics.maxDD}%`}].map(s=>(
+            <div key={s.l} style={{display:"flex",gap:5,alignItems:"center"}}>
+              <span style={{fontSize:9,color:"#6b8299"}}>{s.l}:</span>
+              <span style={{fontSize:11,fontWeight:700,color:bench?.color}}>{s.v}</span>
+            </div>
+          ))}
+          <span style={{fontSize:9,color:"#6b8299",marginLeft:"auto"}}>All active funds compared against this benchmark</span>
+        </div>
+
+        {/* ── BEGINNER: Health Check Q&A ── */}
+        {mode==="beginner" && (()=>{
+          const avgAlpha=metrics.length?metrics.reduce((a,m)=>a+m.alpha,0)/metrics.length:0;
+          const avgVol=metrics.length?metrics.reduce((a,m)=>a+m.vol,0)/metrics.length:0;
+          const cats=new Set(activeFunds.map(f=>f.category));
+          const checks=[
+            {q:"Am I beating the market?", a:avgAlpha>0?`YES ✅ (+${avgAlpha.toFixed(1)}%/yr above ${bench?.shortName})`:`NOT QUITE ❌ (${avgAlpha.toFixed(1)}% behind)`, d:avgAlpha>0?`Active funds adding ${avgAlpha.toFixed(1)}% extra annually`:`A ${bench?.shortName} index fund would have done better`, c:avgAlpha>0?"#00d4a4":"#ff5252"},
+            {q:"Is my risk level manageable?", a:avgVol<20?"YES ✅ Moderate volatility":"REVIEW ⚠️ High volatility", d:avgVol<20?"Funds don't swing too wildly":"Portfolio can drop significantly in bad markets", c:avgVol<20?"#00d4a4":"#ff8c42"},
+            {q:"Am I well diversified?", a:cats.size>=3?"YES ✅":cats.size===2?"PARTIALLY 🟡":"LIMITED ❌", d:`${activeFunds.length} funds across ${cats.size} categor${cats.size>1?"ies":"y"}`, c:cats.size>=3?"#00d4a4":cats.size===2?"#c9a84c":"#ff5252"},
+            {q:"Is active investing worth it?", a:avgAlpha>1?"YES ✅ Funds earning fees":avgAlpha>-1?"BORDERLINE 🟡":"PROBABLY NOT ❌", d:avgAlpha>1?"Active management delivering real value":"Consider adding index funds for lower cost", c:avgAlpha>1?"#00d4a4":avgAlpha>-1?"#c9a84c":"#ff5252"},
+          ];
+          const score=Math.round(Math.max(0,Math.min(100,50+(avgAlpha/5)*25+(cats.size/4)*25-(avgVol>25?15:0))));
+          const sc=score>=70?"#00d4a4":score>=50?"#c9a84c":"#ff5252";
+          return(
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center",padding:"12px 16px",borderRadius:10,background:"#f8fafc",border:"1px solid #dde4ee"}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#1a2433"}}>Investment Health Check vs {bench?.shortName}</div>
+                  <div style={{fontSize:10,color:"#6b8299"}}>Switch to <strong>Investor</strong> or <strong>Pro</strong> mode for detailed quant metrics</div>
+                </div>
+                <div style={{textAlign:"center",padding:"8px 14px",borderRadius:10,background:`${sc}12`,border:`2px solid ${sc}40`,flexShrink:0}}>
+                  <div style={{fontSize:22,fontWeight:800,color:sc}}>{score}</div>
+                  <div style={{fontSize:9,color:sc,fontWeight:700}}>PORTFOLIO SCORE</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {checks.map(ch=>(
+                  <div key={ch.q} style={{flex:"1 1 200px",padding:"12px 14px",borderRadius:9,background:`${ch.c}07`,border:`1.5px solid ${ch.c}30`}}>
+                    <div style={{fontSize:10,color:"#6b8299",marginBottom:4}}>{ch.q}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:ch.c,marginBottom:3}}>{ch.a}</div>
+                    <div style={{fontSize:9,color:"#3d617e",lineHeight:1.5}}>{ch.d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── INVESTOR / PRO: Metrics table ── */}
+        {mode!=="beginner" && <div className="ax-card" style={{padding:0,overflow:"hidden"}}>
+          <div style={{fontWeight:600,fontSize:12,padding:"12px 16px",borderBottom:"1px solid #dde4ee",display:"flex",alignItems:"center",gap:6}}>
+            <BarChart3 size={13}/> Risk-Adjusted Metrics vs {bench?.shortName}
+            <span style={{fontSize:9,color:"#6b8299",fontWeight:400,marginLeft:4}}>↑ higher is better · ↓ lower is better</span>
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+              <thead><tr>
+                <TH>Fund</TH><TH right>CAGR ↑</TH><TH right>Vol% ↓</TH>
+                <TH right>Sharpe ↑</TH><TH right>Sortino ↑</TH>
+                <TH right>Beta</TH><TH right>Alpha ↑</TH>
+                <TH right>Max DD ↓</TH><TH right>Info Ratio ↑</TH><TH right>Calmar ↑</TH>
+                <TH center>Risk</TH>
+              </tr></thead>
+              <tbody>
+                <tr style={{borderTop:"1px solid #dde4ee",background:"#f7f9fc"}}>
+                  <TD><div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{width:8,height:8,borderRadius:2,background:bench?.color,flexShrink:0}}/>
+                    <span style={{fontWeight:700,color:bench?.color}}>{bench?.shortName}</span>
+                    <span style={{fontSize:9,color:"#6b8299",background:"#f0f4fa",padding:"1px 5px",borderRadius:6}}>Index</span>
+                  </div></TD>
+                  <TD right style={{fontWeight:700,color:mc(benchMetrics.cagr,10,14)}}>{benchMetrics.cagr}%</TD>
+                  <TD right style={{color:"#3d617e"}}>{benchMetrics.vol}%</TD>
+                  <TD right style={{fontWeight:600,color:mc(benchMetrics.sh,0.5,1)}}>{benchMetrics.sh}</TD>
+                  <TD right>—</TD><TD right style={{color:"#3d617e"}}>1.00</TD>
+                  <TD right style={{color:"#6b8299"}}>0.00%</TD>
+                  <TD right style={{color:"#ff5252",fontWeight:700}}>{benchMetrics.maxDD}%</TD>
+                  <TD right>—</TD><TD right>—</TD>
+                  <TD center><span style={{fontSize:9,color:"#6b8299"}}>baseline</span></TD>
+                </tr>
+                {metrics.map((m,i)=>(
+                  <tr key={m.fund.id} style={{borderTop:"1px solid #dde4ee",background:i%2===0?"#fff":"#fafbfc"}}>
+                    <TD><div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",background:m.fund.color,flexShrink:0}}/>
+                      <span style={{fontWeight:600,color:"#1a2433"}}>{m.fund.shortName}</span>
+                    </div></TD>
+                    <TD right style={{fontWeight:700,color:mc(m.cagr,10,14)}}>{m.cagr}%</TD>
+                    <TD right style={{color:m.vol>25?"#ff5252":m.vol>18?"#ff8c42":"#3d617e"}}>{m.vol}%</TD>
+                    <TD right style={{fontWeight:700,color:mc(m.sh,0.5,1)}}>{m.sh}</TD>
+                    <TD right style={{fontWeight:700,color:mc(m.so,0.6,1.2)}}>{m.so}</TD>
+                    <TD right style={{color:Math.abs(m.beta-1)<0.15?"#3d617e":m.beta>1?"#ff8c42":"#4a9eff",fontWeight:600}}>{m.beta}</TD>
+                    <TD right style={{fontWeight:700,color:m.alpha>=0?"#00d4a4":"#ff5252"}}>{m.alpha>=0?`+${m.alpha}`:m.alpha}%</TD>
+                    <TD right style={{fontWeight:700,color:"#ff5252"}}>{m.maxDD}%</TD>
+                    <TD right style={{color:m.ir>0?"#00d4a4":"#ff5252",fontWeight:600}}>{m.ir>=0?`+${m.ir}`:m.ir}</TD>
+                    <TD right style={{color:mc(m.calmar,0.2,0.4),fontWeight:600}}>{m.calmar}</TD>
+                    <TD center>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                        <div style={{width:44,height:5,background:"#dde4ee",borderRadius:2}}>
+                          <div style={{width:`${m.riskScore}%`,height:"100%",borderRadius:2,
+                            background:m.riskScore>70?"#ff5252":m.riskScore>40?"#ff8c42":"#00d4a4"}}/>
+                        </div>
+                        <span style={{fontSize:9,color:"#6b8299"}}>{m.riskScore}/100</span>
+                      </div>
+                    </TD>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>}
+
+        {/* Insights */}
+        {insights.length>0&&(
+          <div className="ax-card" style={{padding:"14px 16px"}}>
+            <div style={{fontWeight:600,fontSize:12,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+              <Brain size={13} color="#c9a84c"/> Actionable Insights & Hidden Risks
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>
+              {insights.map((ins,i)=>(
+                <div key={i} style={{display:"flex",gap:8,padding:"8px 12px",borderRadius:8,
+                  background:ins.t==="positive"?"rgba(0,212,164,.06)":ins.t==="risk"?"rgba(255,82,82,.07)":"rgba(255,140,66,.06)",
+                  borderLeft:`3px solid ${ins.t==="positive"?"#00d4a4":ins.t==="risk"?"#ff5252":"#ff8c42"}`}}>
+                  <span style={{fontSize:13,flexShrink:0}}>{ins.t==="positive"?"✓":ins.t==="risk"?"⚠":"◆"}</span>
+                  <span style={{fontSize:11,color:"#2d4060",lineHeight:1.5}}>{ins.msg}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </>}
+
+      {/* ── RISK DEEP DIVE ── */}
+      {subTab==="risk" && <>
+        {/* Drawdown chart */}
+        <div className="ax-card" style={{padding:"14px 6px 8px"}}>
+          <div style={{paddingLeft:10,marginBottom:2,fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+            <TrendingDown size={13} color="#ff5252"/> Drawdown from Peak (%)
+          </div>
+          <div style={{paddingLeft:10,fontSize:9,color:"#6b8299",marginBottom:6}}>% below all-time high at each month · 0 = at peak · lower = deeper drawdown</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <AreaChart data={ddData} margin={{top:4,right:20,left:-10,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+              <XAxis dataKey="month" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={fmtTick} interval="preserveStartEnd"/>
+              <YAxis tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={v=>`${v}%`}/>
+              <ReferenceLine y={0} stroke="#dde4ee" strokeWidth={1}/>
+              <Tooltip formatter={(v,n)=>[`${v}%`,n===selBench?bench?.shortName:MF_FUNDS.find(f=>f.id===n)?.shortName||n]}
+                labelFormatter={l=>fmtML(l)} contentStyle={{fontSize:10,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+              <Area type="monotone" dataKey={selBench} stroke={bench?.color} fill={`${bench?.color}15`} strokeWidth={1.5} strokeDasharray="4 2" dot={false}/>
+              {activeFunds.map(f=>(
+                <Area key={f.id} type="monotone" dataKey={f.id} stroke={f.color} fill={`${f.color}08`} strokeWidth={2} dot={false}/>
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Rolling 12M returns */}
+        <div className="ax-card" style={{padding:"14px 6px 8px"}}>
+          <div style={{paddingLeft:10,marginBottom:4,fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+            <TrendingUp size={13} color="#c9a84c"/> Rolling 12-Month Returns (%)
+          </div>
+          <ResponsiveContainer width="100%" height={230}>
+            <LineChart data={rollData} margin={{top:4,right:20,left:-10,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+              <XAxis dataKey="month" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={fmtTick} interval="preserveStartEnd"/>
+              <YAxis tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={v=>`${v}%`}/>
+              <ReferenceLine y={0} stroke="#ff5252" strokeDasharray="3 3" strokeWidth={1}/>
+              <Tooltip formatter={(v,n)=>[`${v}%`,n===selBench?bench?.shortName:MF_FUNDS.find(f=>f.id===n)?.shortName||n]}
+                labelFormatter={l=>fmtML(l)} contentStyle={{fontSize:10,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+              <Line type="monotone" dataKey={selBench} stroke={bench?.color} strokeWidth={1.5} dot={false} strokeDasharray="4 2"/>
+              {activeFunds.map(f=>(<Line key={f.id} type="monotone" dataKey={f.id} stroke={f.color} strokeWidth={2} dot={false}/>))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Risk-Return scatter (SVG bubble plot) */}
+        <div className="ax-card" style={{padding:"14px 16px"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+            <Activity size={13}/> Risk–Return Profile (Volatility vs CAGR)
+          </div>
+          {(()=>{
+            const pts=[
+              {id:selBench,label:bench?.shortName,vol:benchMetrics.vol,ret:benchMetrics.cagr,color:bench?.color,isBench:true},
+              ...metrics.map(m=>({id:m.fund.id,label:m.fund.shortName,vol:m.vol,ret:m.cagr,color:m.fund.color}))
+            ];
+            const maxV=Math.max(...pts.map(p=>p.vol))+3, minV=Math.max(0,Math.min(...pts.map(p=>p.vol))-3);
+            const maxR=Math.max(...pts.map(p=>p.ret))+2, minR=Math.min(...pts.map(p=>p.ret))-2;
+            const px=v=>((v-minV)/(maxV-minV))*82+9;
+            const py=r=>(1-(r-minR)/(maxR-minR))*80+5;
+            return(
+              <div style={{position:"relative",height:220,background:"#f8fafc",borderRadius:8,border:"1px solid #dde4ee",overflow:"hidden"}}>
+                {/* Gridlines */}
+                <div style={{position:"absolute",bottom:20,left:0,right:0,height:"1px",background:"#dde4ee"}}/>
+                <div style={{position:"absolute",left:"50%",top:0,bottom:20,width:"1px",background:"#eef2f7"}}/>
+                <span style={{position:"absolute",bottom:2,left:"50%",transform:"translateX(-50%)",fontSize:8,color:"#6b8299"}}>← Lower Volatility &nbsp;&nbsp; Higher Volatility →</span>
+                <span style={{position:"absolute",left:2,top:"45%",transform:"rotate(-90deg) translateX(-50%)",fontSize:8,color:"#6b8299",whiteSpace:"nowrap"}}>CAGR %</span>
+                {pts.map(p=>(
+                  <div key={p.id} title={`${p.label}: ${p.ret}% CAGR, ${p.vol}% Vol`} style={{
+                    position:"absolute",left:`${px(p.vol)}%`,top:`${py(p.ret)}%`,
+                    transform:"translate(-50%,-50%)",display:"flex",flexDirection:"column",alignItems:"center",
+                  }}>
+                    <div style={{width:p.isBench?11:14,height:p.isBench?11:14,
+                      borderRadius:p.isBench?"3px":"50%",background:p.color,
+                      boxShadow:`0 0 0 3px ${p.color}30`,border:`2px solid ${p.color}`}}/>
+                    <span style={{fontSize:8,color:p.color,fontWeight:700,whiteSpace:"nowrap",
+                      background:"rgba(255,255,255,.9)",padding:"0 3px",borderRadius:3,marginTop:2}}>{p.label}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          <div style={{fontSize:9,color:"#6b8299",marginTop:6}}>
+            ■ = Index benchmark · ● = Active fund · Top-left quadrant (low vol, high return) = optimal
+          </div>
+        </div>
+      </>}
+
+      {/* ── ACTIVE VS PASSIVE ── */}
+      {subTab==="avsp" && <>
+        {/* ₹1L bar chart */}
+        <div className="ax-card" style={{padding:"14px 16px"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+            <TrendingUp size={13} color="#c9a84c"/> ₹1 Lakh Invested 10 Years Ago · Final Value
+          </div>
+          {(()=>{
+            const rows=[
+              {label:bench?.shortName,color:bench?.color,val:Math.round(benchNavs[benchNavs.length-1].nav),isBench:true,er:0.10,alpha:0},
+              ...metrics.map(m=>({label:m.fund.shortName,color:m.fund.color,
+                val:Math.round(MF_NAV[m.fund.id][MF_NAV[m.fund.id].length-1].nav),isBench:false,er:m.fund.er,alpha:m.alpha}))
+            ].sort((a,b)=>b.val-a.val);
+            const maxVal=rows[0]?.val||1;
+            return rows.map(r=>(
+              <div key={r.label} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+                <div style={{width:86,fontSize:10,fontWeight:r.isBench?600:500,color:r.color,flexShrink:0}}>{r.label}</div>
+                <div style={{flex:1,height:24,background:"#f0f4fa",borderRadius:5,overflow:"hidden",position:"relative"}}>
+                  <div style={{width:`${(r.val/maxVal)*100}%`,height:"100%",
+                    background:r.isBench?`${r.color}60`:r.color,borderRadius:5}}/>
+                  <span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",
+                    fontSize:11,fontWeight:700,color:"#1a2433"}}>
+                    ₹{r.val.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div style={{width:90,textAlign:"right",fontSize:9,flexShrink:0,color:r.isBench?"#6b8299":r.alpha>=0?"#00d4a4":"#ff5252",fontWeight:600}}>
+                  {r.isBench?`Passive (ER ${r.er}%)`:r.alpha>=0?`+${r.alpha}% alpha`:`${r.alpha}% alpha`}
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
+
+        {/* Expense ratio drag table */}
+        <div className="ax-card" style={{padding:0,overflow:"hidden"}}>
+          <div style={{fontWeight:600,fontSize:12,padding:"12px 16px",borderBottom:"1px solid #dde4ee",display:"flex",alignItems:"center",gap:6}}>
+            <AlertTriangle size={13} color="#ff8c42"/> Expense Ratio Drag · True Cost of Active Management
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+              <thead><tr>
+                <TH>Fund</TH><TH right>Gross CAGR</TH><TH right>ER%</TH>
+                <TH right>Net CAGR</TH><TH right>ER Drag on ₹1L</TH><TH right>vs Passive ({bench?.shortName})</TH>
+              </tr></thead>
+              <tbody>
+                <tr style={{background:"rgba(41,128,185,.05)",borderTop:"1px solid #dde4ee"}}>
+                  <TD><span style={{fontWeight:600,color:bench?.color}}>{bench?.shortName} (Passive ETF)</span></TD>
+                  <TD right style={{color:mc(benchMetrics.cagr,10,14)}}>{benchMetrics.cagr}%</TD>
+                  <TD right style={{color:"#00d4a4"}}>0.10%</TD>
+                  <TD right style={{fontWeight:700,color:mc(benchMetrics.cagr-0.1,10,14)}}>{(benchMetrics.cagr-0.1).toFixed(1)}%</TD>
+                  <TD right style={{color:"#6b8299"}}>—</TD>
+                  <TD right style={{color:"#6b8299"}}>baseline</TD>
+                </tr>
+                {metrics.map((m,i)=>{
+                  const netR=m.cagr-m.fund.er;
+                  const grossFV=Math.pow(1+m.cagr/100,10)*100000;
+                  const netFV=Math.pow(1+netR/100,10)*100000;
+                  const passFV=Math.pow(1+(benchMetrics.cagr-0.1)/100,10)*100000;
+                  const drag=Math.round(grossFV-netFV);
+                  const vs=Math.round(netFV-passFV);
+                  return(
+                    <tr key={m.fund.id} style={{borderTop:"1px solid #dde4ee",background:i%2===0?"#fff":"#fafbfc"}}>
+                      <TD><div style={{display:"flex",alignItems:"center",gap:5}}>
+                        <span style={{width:7,height:7,borderRadius:"50%",background:m.fund.color}}/>
+                        <span style={{fontWeight:600}}>{m.fund.shortName}</span>
+                      </div></TD>
+                      <TD right style={{color:mc(m.cagr,10,14)}}>{m.cagr}%</TD>
+                      <TD right style={{color:"#ff8c42",fontWeight:600}}>{m.fund.er}%</TD>
+                      <TD right style={{fontWeight:700,color:mc(netR,10,14)}}>{netR.toFixed(1)}%</TD>
+                      <TD right style={{color:"#ff8c42"}}>−₹{drag.toLocaleString("en-IN")}</TD>
+                      <TD right style={{fontWeight:700,color:vs>=0?"#00d4a4":"#ff5252"}}>{vs>=0?"+":""}{fmt(vs)}</TD>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Normalized performance chart */}
+        <div className="ax-card" style={{padding:"14px 6px 8px"}}>
+          <div style={{paddingLeft:10,fontSize:12,fontWeight:600,marginBottom:4}}>
+            Active vs {bench?.shortName} · Growth of ₹100 (10Y, normalized)
+          </div>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={normChartData} margin={{top:4,right:20,left:-10,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+              <XAxis dataKey="month" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={fmtTick} interval="preserveStartEnd"/>
+              <YAxis tick={{fontSize:9,fill:"#6b8299"}}/>
+              <Tooltip formatter={(v,n)=>[`₹${v}`,n===selBench?bench?.shortName:MF_FUNDS.find(f=>f.id===n)?.shortName||n]}
+                labelFormatter={l=>fmtML(l)} contentStyle={{fontSize:10,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+              <Line type="monotone" dataKey={selBench} stroke={bench?.color} strokeWidth={2.5} dot={false} strokeDasharray="6 3"/>
+              {activeFunds.map(f=>(<Line key={f.id} type="monotone" dataKey={f.id} stroke={f.color} strokeWidth={2} dot={false}/>))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </>}
+
+      {/* ── WEALTH FORECAST ── */}
+      {subTab==="forecast" && <>
+        {/* Inputs */}
+        <div className="ax-card" style={{padding:"14px 16px"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Projection Settings</div>
+          <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+            <div>
+              <div className="ax-label">Time Horizon</div>
+              <div style={{display:"flex",gap:4}}>
+                {[5,10,15,20,30].map(y=>(
+                  <button key={y} onClick={()=>setProjYears(y)} className="ax-btn" style={{
+                    padding:"4px 10px",fontSize:11,
+                    background:projYears===y?"#c9a84c":"transparent",
+                    color:projYears===y?"#1a1a1a":"#6b8299",
+                    borderColor:projYears===y?"#c9a84c":"#dde4ee",fontWeight:projYears===y?700:400,
+                  }}>{y}Y</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="ax-label">Monthly SIP</div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {[10000,25000,50000,100000].map(s=>(
+                  <button key={s} onClick={()=>setProjSIP(s)} className="ax-btn" style={{
+                    padding:"4px 10px",fontSize:11,
+                    background:projSIP===s?"#c9a84c":"transparent",
+                    color:projSIP===s?"#1a1a1a":"#6b8299",
+                    borderColor:projSIP===s?"#c9a84c":"#dde4ee",fontWeight:projSIP===s?700:400,
+                  }}>{fmt(s)}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{fontSize:9,color:"#6b8299",marginTop:8}}>
+            Starting corpus: {fmt(entries?.length>0?(entries[entries.length-1]?.investments?.mutualFunds||1000000):1000000)}
+            · Uses fund's expected return minus expense ratio · Deterministic median projection
+          </div>
+        </div>
+
+        {/* Trajectory chart */}
+        <div className="ax-card" style={{padding:"14px 6px 8px"}}>
+          <div style={{paddingLeft:10,fontSize:12,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+            <Zap size={13} color="#c9a84c"/> {projYears}-Year Wealth Trajectory · SIP {fmt(projSIP)}/mo
+          </div>
+          <ResponsiveContainer width="100%" height={270}>
+            <LineChart data={projData} margin={{top:4,right:20,left:10,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+              <XAxis dataKey="year" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={v=>`Yr ${v}`}/>
+              <YAxis tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={v=>fmt(v)} width={70}/>
+              <Tooltip formatter={(v,n)=>[fmt(v),n==="passive"?`${bench?.shortName} Passive`:MF_FUNDS.find(f=>f.id===n)?.shortName||n]}
+                contentStyle={{fontSize:10,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+              <Line type="monotone" dataKey="passive" stroke={bench?.color} strokeWidth={2} dot={false} strokeDasharray="6 3" name="passive"/>
+              {activeFunds.map(f=>(<Line key={f.id} type="monotone" dataKey={f.id} stroke={f.color} strokeWidth={2.5} dot={false}/>))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Outcome table */}
+        <div className="ax-card" style={{padding:0,overflow:"hidden"}}>
+          <div style={{fontWeight:600,fontSize:12,padding:"12px 16px",borderBottom:"1px solid #dde4ee"}}>
+            Projected Corpus Milestones · SIP {fmt(projSIP)}/mo (Median estimate, net of ER)
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+              <thead><tr>
+                <TH>Fund / Index</TH>
+                {[Math.ceil(projYears*0.25),Math.ceil(projYears*0.5),Math.ceil(projYears*0.75),projYears]
+                  .filter((v,i,a)=>a.indexOf(v)===i).map(y=><TH right key={y}>Year {y}</TH>)}
+                <TH right>vs Passive</TH>
+              </tr></thead>
+              <tbody>
+                {(()=>{
+                  const ms=[Math.ceil(projYears*0.25),Math.ceil(projYears*0.5),Math.ceil(projYears*0.75),projYears].filter((v,i,a)=>a.indexOf(v)===i);
+                  const rows=[
+                    {id:"passive",label:bench?.shortName,color:bench?.color,isBench:true},
+                    ...activeFunds.map(f=>({id:f.id,label:f.shortName,color:f.color}))
+                  ];
+                  const gv=(id,y)=>projData.find(d=>d.year===y)?.[id]||0;
+                  const pEnd=gv("passive",projYears);
+                  return rows.map((r,i)=>(
+                    <tr key={r.id} style={{borderTop:"1px solid #dde4ee",background:r.isBench?"rgba(74,158,255,.03)":i%2===0?"#fff":"#fafbfc"}}>
+                      <TD><div style={{display:"flex",alignItems:"center",gap:5}}>
+                        <span style={{width:8,height:8,borderRadius:r.isBench?"2px":"50%",background:r.color,flexShrink:0}}/>
+                        <span style={{fontWeight:600,color:r.color}}>{r.label}</span>
+                        {r.isBench&&<span style={{fontSize:9,color:"#6b8299",background:"#f0f4fa",padding:"1px 5px",borderRadius:6}}>Passive</span>}
+                      </div></TD>
+                      {ms.map(y=><TD right key={y} style={{fontWeight:600,color:"#1a2433"}}>{fmt(gv(r.id,y))}</TD>)}
+                      <TD right>
+                        {r.isBench?<span style={{fontSize:9,color:"#6b8299"}}>baseline</span>:(()=>{
+                          const d=gv(r.id,projYears)-pEnd;
+                          return<span style={{fontWeight:700,color:d>=0?"#00d4a4":"#ff5252"}}>{d>=0?"+":""}{fmt(d)}</span>;
+                        })()}
+                      </TD>
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>}
+    </div>
+  );
+}
+
+// ── Beginner: Market Beat Card ────────────────────────────────────────────────
+function BeginnerMarketBeatCard({ entries }) {
+  if (!entries?.length) return null;
+  const sorted = [...entries].sort((a,b)=>a.id.localeCompare(b.id));
+  if (sorted.length < 2) return null;
+  const first = sorted[0], last = sorted[sorted.length-1];
+  const months = sorted.length - 1;
+  const firstInv = Object.values(first?.investments||{}).reduce((a,v)=>a+v,0);
+  const lastInv  = Object.values(last?.investments||{}).reduce((a,v)=>a+v,0);
+  if (firstInv <= 0 || months < 3) return null;
+  const portCAGR = ((Math.pow(lastInv/firstInv,12/months)-1)*100);
+  const benchmarks = [
+    {label:"Nifty 50",   val:12.0, emoji:"📈"},
+    {label:"Gold",       val:8.0,  emoji:"🥇"},
+    {label:"Bank FD",    val:7.0,  emoji:"🏦"},
+  ];
+  const color = portCAGR >= 12 ? "#00d4a4" : portCAGR >= 7 ? "#c9a84c" : "#ff5252";
+  const verdict = portCAGR >= 12 ? "✅ You are beating Nifty 50!"
+                : portCAGR >= 8  ? "🟡 You beat Gold & FD, but not the index."
+                : portCAGR >= 7  ? "🟡 You are beating Fixed Deposits."
+                                 : "❌ A simple index fund may do better.";
+  return (
+    <div className="ax-card" style={{padding:"16px 20px"}}>
+      <div style={{fontSize:12,fontWeight:700,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+        <TrendingUp size={14} color="#c9a84c"/> Am I beating the market?
+      </div>
+      <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"center",marginBottom:12}}>
+        <div style={{textAlign:"center",padding:"10px 16px",borderRadius:10,background:`${color}10`,border:`2px solid ${color}30`}}>
+          <div style={{fontSize:32,fontWeight:800,color,lineHeight:1}}>{portCAGR.toFixed(1)}%</div>
+          <div style={{fontSize:9,color:"#6b8299",marginTop:2}}>Your returns / year</div>
+        </div>
+        <div style={{flex:1,fontSize:12,fontWeight:600,color,lineHeight:1.6}}>{verdict}</div>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {benchmarks.map(b=>{
+          const beat = portCAGR > b.val;
+          return(
+            <div key={b.label} style={{flex:"1 1 80px",padding:"8px 10px",borderRadius:8,
+              background:beat?"rgba(0,212,164,.07)":"rgba(255,82,82,.05)",
+              border:`1px solid ${beat?"rgba(0,212,164,.25)":"rgba(255,82,82,.2)"}`}}>
+              <div style={{fontSize:10}}>{b.emoji} {b.label}</div>
+              <div style={{fontSize:13,fontWeight:700,color:beat?"#00d4a4":"#ff5252"}}>{beat?"▲ Beat":"▼ Behind"}</div>
+              <div style={{fontSize:9,color:"#6b8299"}}>{b.val}%/yr</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{fontSize:9,color:"#6b8299",marginTop:8}}>
+        Based on your investment portfolio CAGR over {months} months. Benchmarks are long-run historical averages.
+      </div>
+    </div>
+  );
+}
+
+// ── Beginner: Risk Thermometer ────────────────────────────────────────────────
+function BeginnerRiskThermometer({ entries }) {
+  if (!entries?.length) return null;
+  const sorted = [...entries].sort((a,b)=>a.id.localeCompare(b.id));
+  const l = sorted[sorted.length-1];
+  const totalInv   = Object.values(l.investments||{}).reduce((a,v)=>a+v,0);
+  const totalLoans = Object.values(l.loans||{}).reduce((a,v)=>a+v,0);
+  const totalInc   = Object.values(l.income||{}).reduce((a,v)=>a+v,0);
+  const totalExp   = Object.values(l.expenses||{}).reduce((a,v)=>a+v,0);
+  const savings    = totalInc - totalExp;
+  const savePct    = totalInc > 0 ? savings/totalInc*100 : 0;
+  let risk = 35;
+  if (savePct < 10) risk += 22; else if (savePct < 20) risk += 12;
+  if (totalLoans > totalInv) risk += 25; else if (totalLoans > totalInv*0.5) risk += 10;
+  if (totalInv === 0) risk += 18;
+  if (sorted.length >= 4) {
+    const rets = sorted.slice(1).map((e,i)=>{const p=sorted[i].netWorth||1;return(e.netWorth-p)/p;});
+    const mean = rets.reduce((a,v)=>a+v,0)/rets.length;
+    const vol  = Math.sqrt(rets.reduce((a,v)=>a+Math.pow(v-mean,2),0)/rets.length)*100;
+    if (vol>10) risk+=10; else if(vol>5) risk+=5;
+  }
+  risk = Math.max(0, Math.min(100, Math.round(risk)));
+  const band = risk<30 ? {label:"LOW RISK",     color:"#00d4a4", desc:"Stable finances. Keep it up!", emoji:"🟢"}
+             : risk<55 ? {label:"MODERATE",     color:"#c9a84c", desc:"Some risk present — keep loans in check.", emoji:"🟡"}
+             : risk<75 ? {label:"HIGH RISK",    color:"#ff8c42", desc:"Significant risk. Focus on reducing debt.", emoji:"🟠"}
+                       : {label:"VERY HIGH",    color:"#ff5252", desc:"Urgent: Debt far exceeds investments.", emoji:"🔴"};
+  const tips = [
+    savePct<20   && "Save at least 20% of your income every month.",
+    totalLoans>totalInv && "Your loans exceed your investments — pay down debt first.",
+    totalInv===0 && "Start a monthly SIP — even ₹500/month builds a habit.",
+  ].filter(Boolean);
+  const fillH = Math.round(72 * risk/100);
+  return (
+    <div className="ax-card" style={{padding:"16px 20px"}}>
+      <div style={{fontSize:12,fontWeight:700,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+        <Activity size={14} color={band.color}/> Risk Thermometer
+      </div>
+      <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap",marginBottom:tips.length?10:0}}>
+        <svg width="28" height="90" viewBox="0 0 28 90" style={{flexShrink:0}}>
+          <rect x="9" y="4" width="10" height="72" rx="5" fill="#f0f4fa" stroke="#dde4ee" strokeWidth="1"/>
+          <rect x="10" y={4+(72-fillH)} width="8" height={fillH} rx="4" fill={band.color}/>
+          <circle cx="14" cy="80" r="8" fill={band.color}/>
+          <circle cx="14" cy="80" r="5" fill="rgba(255,255,255,.3)"/>
+        </svg>
+        <div style={{flex:1}}>
+          <div style={{fontSize:18,fontWeight:800,color:band.color,marginBottom:4}}>{band.emoji} {band.label}</div>
+          <div style={{fontSize:11,color:"#3d617e",lineHeight:1.5,marginBottom:4}}>{band.desc}</div>
+          <div style={{fontSize:10,color:"#6b8299"}}>Risk score: <strong style={{color:band.color}}>{risk}/100</strong></div>
+        </div>
+      </div>
+      {tips.map((t,i)=>(
+        <div key={i} style={{fontSize:11,color:"#3d617e",padding:"6px 10px",marginTop:5,
+          background:"rgba(255,140,66,.06)",borderLeft:"3px solid #ff8c42",borderRadius:"0 6px 6px 0"}}>
+          💡 {t}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Beginner: Allocation Pie ──────────────────────────────────────────────────
+function BeginnerAllocationPie({ entries }) {
+  if (!entries?.length) return null;
+  const l = [...entries].sort((a,b)=>a.id.localeCompare(b.id))[entries.length-1];
+  const totalInc = Object.values(l.income||{}).reduce((a,v)=>a+v,0);
+  if (!totalInc) return null;
+  const totalExp   = Object.values(l.expenses||{}).reduce((a,v)=>a+v,0);
+  const totalInv   = Object.values(l.investments||{}).reduce((a,v)=>a+v,0);
+  const totalLoans = Object.values(l.loans||{}).reduce((a,v)=>a+v,0);
+  const sav        = Math.max(0, totalInc - totalExp);
+  const segs = [
+    {label:"Expenses",    value:totalExp,   color:"#ff5252"},
+    {label:"Savings",     value:sav,        color:"#00d4a4"},
+    {label:"Investments", value:totalInv,   color:"#c9a84c"},
+    {label:"Loans",       value:totalLoans, color:"#ff8c42"},
+  ].filter(s=>s.value>0).map(s=>({...s,pct:s.value/totalInc*100}));
+  const savPct = (sav/totalInc*100).toFixed(0);
+  return (
+    <div className="ax-card" style={{padding:"16px 20px"}}>
+      <div style={{fontSize:12,fontWeight:700,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+        <DollarSign size={14} color="#c9a84c"/> Where does your money go?
+      </div>
+      <div style={{fontSize:9,color:"#6b8299",marginBottom:8}}>Latest month · Total income {fmt(totalInc)}</div>
+      <div style={{height:20,borderRadius:6,overflow:"hidden",display:"flex",gap:1,marginBottom:10}}>
+        {segs.map(s=><div key={s.label} style={{flex:s.pct,background:s.color,minWidth:2}} title={`${s.label}: ${s.pct.toFixed(0)}%`}/>)}
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {segs.map(s=>(
+          <div key={s.label} style={{flex:"1 1 90px",padding:"8px 10px",borderRadius:8,background:`${s.color}09`,border:`1px solid ${s.color}30`}}>
+            <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
+              <span style={{width:7,height:7,borderRadius:"50%",background:s.color,flexShrink:0}}/>
+              <span style={{fontSize:9,color:"#6b8299"}}>{s.label}</span>
+            </div>
+            <div style={{fontSize:14,fontWeight:700,color:s.color}}>{s.pct.toFixed(0)}%</div>
+            <div style={{fontSize:9,color:"#3d617e"}}>{fmt(s.value)}</div>
+          </div>
+        ))}
+      </div>
+      {parseFloat(savPct) < 20 && (
+        <div style={{marginTop:8,fontSize:11,color:"#ff8c42",background:"rgba(255,140,66,.06)",padding:"6px 10px",borderRadius:6}}>
+          💡 Aim to save 20%+ of income. You're saving {savPct}%.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Beginner: SIP Simulator ───────────────────────────────────────────────────
+function BeginnerSIPSimulator() {
+  const [monthly, setMonthly] = useState(5000);
+  const [years,   setYears]   = useState(10);
+  const [rate,    setRate]    = useState(12);
+  const result = useMemo(()=>{
+    const r=rate/1200, n=years*12;
+    const corpus = monthly*((Math.pow(1+r,n)-1)/r)*(1+r);
+    const invested = monthly*n;
+    return {corpus:Math.round(corpus), invested:Math.round(invested), gains:Math.round(corpus-invested)};
+  },[monthly,years,rate]);
+  const chartData = useMemo(()=>Array.from({length:years+1},(_,y)=>{
+    if(!y) return {year:0,corpus:0,invested:0};
+    const r=rate/1200,n=y*12;
+    return {year:y, corpus:Math.round(monthly*((Math.pow(1+r,n)-1)/r)*(1+r)), invested:Math.round(monthly*n)};
+  }),[monthly,years,rate]);
+  return (
+    <div className="ax-card" style={{padding:"16px 20px"}}>
+      <div style={{fontSize:12,fontWeight:700,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+        <Zap size={14} color="#c9a84c"/> SIP Growth Simulator
+      </div>
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:12}}>
+        <div style={{flex:"1 1 120px"}}>
+          <label className="ax-label">Monthly SIP (₹)</label>
+          <input className="ax-input" type="number" value={monthly} min="500" step="500"
+            onChange={e=>setMonthly(Math.max(500,parseInt(e.target.value)||500))}/>
+        </div>
+        <div style={{flex:"1 1 120px"}}>
+          <label className="ax-label">Duration</label>
+          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+            {[5,10,15,20,30].map(y=>(
+              <button key={y} className="ax-btn" onClick={()=>setYears(y)} style={{
+                padding:"3px 7px",fontSize:10,
+                background:years===y?"#c9a84c":"transparent",color:years===y?"#1a1a1a":"#6b8299",
+                borderColor:years===y?"#c9a84c":"#dde4ee",fontWeight:years===y?700:400}}>{y}Y</button>
+            ))}
+          </div>
+        </div>
+        <div style={{flex:"1 1 120px"}}>
+          <label className="ax-label">Expected Return</label>
+          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+            {[8,10,12,15].map(r=>(
+              <button key={r} className="ax-btn" onClick={()=>setRate(r)} style={{
+                padding:"3px 7px",fontSize:10,
+                background:rate===r?"#c9a84c":"transparent",color:rate===r?"#1a1a1a":"#6b8299",
+                borderColor:rate===r?"#c9a84c":"#dde4ee",fontWeight:rate===r?700:400}}>{r}%</button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+        <div style={{flex:"1 1 100px",padding:"10px 12px",background:"#f8fafc",borderRadius:8,textAlign:"center"}}>
+          <div style={{fontSize:9,color:"#6b8299"}}>You invest</div>
+          <div style={{fontSize:14,fontWeight:700,color:"#3d617e"}}>{fmt(result.invested)}</div>
+        </div>
+        <div style={{flex:"1 1 100px",padding:"10px 12px",background:"rgba(0,212,164,.07)",borderRadius:8,textAlign:"center"}}>
+          <div style={{fontSize:9,color:"#6b8299"}}>Your profit</div>
+          <div style={{fontSize:14,fontWeight:700,color:"#00d4a4"}}>{fmt(result.gains)}</div>
+        </div>
+        <div style={{flex:"1 1 100px",padding:"10px 12px",background:"rgba(201,168,76,.08)",borderRadius:8,textAlign:"center",border:"1px solid rgba(201,168,76,.3)"}}>
+          <div style={{fontSize:9,color:"#6b8299"}}>Final corpus</div>
+          <div style={{fontSize:16,fontWeight:800,color:"#c9a84c"}}>{fmt(result.corpus)}</div>
+        </div>
+      </div>
+      <div style={{height:110}}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{top:4,right:4,bottom:0,left:0}}>
+            <defs>
+              <linearGradient id="sip-c" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#c9a84c" stopOpacity={0.3}/><stop offset="95%" stopColor="#c9a84c" stopOpacity={0}/></linearGradient>
+              <linearGradient id="sip-i" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4a9eff" stopOpacity={0.2}/><stop offset="95%" stopColor="#4a9eff" stopOpacity={0}/></linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+            <XAxis dataKey="year" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={v=>`Y${v}`}/>
+            <YAxis tick={{fontSize:9,fill:"#6b8299"}} width={42}
+              tickFormatter={v=>v>=1e7?`${(v/1e7).toFixed(0)}Cr`:v>=1e5?`${(v/1e5).toFixed(0)}L`:`${(v/1000).toFixed(0)}K`}/>
+            <Tooltip formatter={(v,n)=>[fmt(v),n==="corpus"?"Total Corpus":"Invested"]}
+              contentStyle={{fontSize:10,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+            <Area type="monotone" dataKey="invested" stroke="#4a9eff" fill="url(#sip-i)" strokeWidth={1.5} dot={false}/>
+            <Area type="monotone" dataKey="corpus"   stroke="#c9a84c" fill="url(#sip-c)" strokeWidth={2}   dot={false}/>
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <div style={{fontSize:9,color:"#6b8299",marginTop:4}}>Gold = total value · Blue = money invested · Gap = compounding gains</div>
+    </div>
+  );
+}
+
+// ── Pro: Risk Lab Tab ─────────────────────────────────────────────────────────
+const STRESS_SCENARIOS = [
+  {id:"mild",   label:"Mild Correction",        drop:-10, recovery:4,  desc:"Routine 10% correction, quick bounce-back"},
+  {id:"covid",  label:"COVID-19 Crash (2020)",  drop:-38, recovery:8,  desc:"Nifty fell 38% in 6 weeks, recovered in ~8 months"},
+  {id:"ilfs",   label:"IL&FS Crisis (2018)",    drop:-18, recovery:15, desc:"Credit freeze, midcap rout, 15-month recovery"},
+  {id:"gfc",    label:"GFC 2008–09",            drop:-55, recovery:24, desc:"Nifty lost 55% over 12 months, 2-year recovery"},
+  {id:"severe", label:"Severe Crash (-50%)",    drop:-50, recovery:30, desc:"Worst-case scenario, prolonged bear market"},
+];
+
+function RiskLabTab({ entries=[] }) {
+  const [subTab, setSubTab] = useState("var");
+  const [mcYears, setMcYears] = useState(10);
+  const [scenario, setScenario] = useState("covid");
+
+  // Monthly investment returns from user entries
+  const { invRets, hasData } = useMemo(()=>{
+    if(entries.length < 4) return {invRets:[], hasData:false};
+    const s=[...entries].sort((a,b)=>a.id.localeCompare(b.id));
+    const r=s.slice(1).map((e,i)=>{
+      const pi=Object.values(s[i].investments||{}).reduce((a,v)=>a+v,0)||1;
+      const ci=Object.values(e.investments||{}).reduce((a,v)=>a+v,0);
+      const ret=(ci-pi)/pi;
+      return Math.abs(ret)<0.6?ret:null; // exclude outlier jumps
+    }).filter(v=>v!==null);
+    return {invRets:r, hasData:r.length>=3};
+  },[entries]);
+
+  const stats = useMemo(()=>{
+    // fall back to typical Indian equity params if no data
+    const rets = hasData ? invRets : Array.from({length:24},(_,i)=>{
+      const s=(i*7+13)%31/100-0.01; return s;
+    });
+    const n=rets.length, mean=rets.reduce((a,v)=>a+v,0)/n;
+    const variance=rets.reduce((a,v)=>a+Math.pow(v-mean,2),0)/Math.max(n-1,1);
+    const std=Math.sqrt(variance);
+    const sorted=[...rets].sort((a,b)=>a-b);
+    const i95=Math.max(0,Math.floor(n*0.05)-1), i99=Math.max(0,Math.floor(n*0.01)-1);
+    const histVaR95=sorted[i95]??sorted[0], histVaR99=sorted[i99]??sorted[0];
+    const pVaR95=mean-1.645*std, pVaR99=mean-2.326*std;
+    const tail95=sorted.slice(0,Math.max(1,Math.floor(n*0.05)));
+    const cvar95=tail95.reduce((a,v)=>a+v,0)/tail95.length;
+    const rf=0.07/12;
+    const sharpe=std>0?((mean-rf)/std)*Math.sqrt(12):0;
+    const dRets=rets.filter(r=>r<rf);
+    const dStd=dRets.length>1?Math.sqrt(dRets.reduce((a,v)=>a+Math.pow(v-rf,2),0)/dRets.length):std;
+    const sortino=dStd>0?((mean-rf)/dStd)*Math.sqrt(12):0;
+    // M5: compute real beta against Nifty 50, not a hardcoded default
+    const niftyRets = bkRets(BENCH_NAV["nifty50"]);
+    const niftySlice = niftyRets.slice(-rets.length);
+    const betaVal = rets.length >= 3 ? bkBeta(rets, niftySlice) : 1.0;
+    const treynor = betaVal !== 0 ? parseFloat((((mean-rf)*12)/betaVal).toFixed(3)) : 0;
+    let maxDD=0,pk=-Infinity;
+    [...entries].sort((a,b)=>a.id.localeCompare(b.id)).forEach(e=>{
+      const iv=Object.values(e.investments||{}).reduce((a,v)=>a+v,0);
+      if(iv>pk) pk=iv;
+      const dd=pk>0?(iv-pk)/pk*100:0;
+      if(dd<maxDD) maxDD=dd;
+    });
+    return {mean,std,annMean:((Math.pow(1+mean,12)-1)*100),annVol:std*Math.sqrt(12)*100,
+      sharpe,sortino,treynor,
+      histVaR95:histVaR95*100,histVaR99:histVaR99*100,pVaR95:pVaR95*100,pVaR99:pVaR99*100,
+      cvar95:cvar95*100,maxDD,n};
+  },[invRets,hasData,entries]);
+
+  const mcData = useMemo(()=>{
+    const corpus=entries.length>0?Object.values(entries[entries.length-1]?.investments||{}).reduce((a,v)=>a+v,0)||1000000:1000000;
+    const {mean,std}=stats, months=mcYears*12, N=200;
+    let s=54321;
+    const rand=()=>{s=(Math.imul(1664525,s)+1013904223)>>>0;return s/4294967296;};
+    const norm=()=>{const u1=Math.max(rand(),1e-10),u2=rand();return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);};
+    const paths=Array.from({length:N},()=>{let v=corpus;return Array.from({length:months+1},(_,m)=>{if(!m)return v;v*=Math.exp((mean-0.5*std*std)+std*norm());return v;});});
+    return Array.from({length:mcYears+1},(_,y)=>{
+      const mi=y*12, vals=paths.map(p=>p[mi]).sort((a,b)=>a-b);
+      return {year:y,p10:vals[Math.floor(N*.10)],p25:vals[Math.floor(N*.25)],p50:vals[Math.floor(N*.50)],p75:vals[Math.floor(N*.75)],p90:vals[Math.floor(N*.90)]};
+    });
+  },[stats,mcYears,entries]);
+
+  const fragility = useMemo(()=>{
+    if(!entries.length) return null;
+    const l=[...entries].sort((a,b)=>a.id.localeCompare(b.id))[entries.length-1];
+    const totalInv=Object.values(l.investments||{}).reduce((a,v)=>a+v,0);
+    const totalLoans=Object.values(l.loans||{}).reduce((a,v)=>a+v,0);
+    const totalInc=Object.values(l.income||{}).reduce((a,v)=>a+v,0);
+    const totalExp=Object.values(l.expenses||{}).reduce((a,v)=>a+v,0);
+    const savBuf=totalInc>0?(totalInc-totalExp)/totalInc:0;
+    const debtRatio=totalInv>0?totalLoans/totalInv:2;
+    const volS=stats.annVol>25?30:stats.annVol>15?18:8;
+    const ddS=stats.maxDD<-40?25:stats.maxDD<-20?15:5;
+    const debtS=debtRatio>1.5?25:debtRatio>0.5?15:5;
+    const savS=savBuf<0.10?20:savBuf<0.20?12:4;
+    const score=volS+ddS+debtS+savS;
+    const factors=[
+      {label:"Return Volatility",  score:volS,  max:30, desc:`${stats.annVol.toFixed(1)}% annualised`,              color:volS>20?"#ff5252":volS>12?"#ff8c42":"#00d4a4"},
+      {label:"Peak Drawdown",      score:ddS,   max:25, desc:`${stats.maxDD.toFixed(1)}% worst peak-to-trough`,     color:ddS>18?"#ff5252":ddS>10?"#ff8c42":"#00d4a4"},
+      {label:"Debt Load",          score:debtS, max:25, desc:`Debt/investment: ${totalInv>0?(totalLoans/totalInv).toFixed(2):"N/A"}`, color:debtS>18?"#ff5252":debtS>10?"#ff8c42":"#00d4a4"},
+      {label:"Savings Buffer",     score:savS,  max:20, desc:`Saving ${(savBuf*100).toFixed(0)}% of income`,        color:savS>15?"#ff5252":savS>8?"#ff8c42":"#00d4a4"},
+    ];
+    const band=score>=70?{label:"FRAGILE",  color:"#ff5252",desc:"Highly vulnerable to market stress"}
+              :score>=45?{label:"MODERATE", color:"#ff8c42",desc:"Some fragility — reduce debt & build buffers"}
+              :score>=25?{label:"RESILIENT",color:"#c9a84c",desc:"Can weather moderate downturns"}
+                        :{label:"ROBUST",   color:"#00d4a4",desc:"Well-positioned for market stress"};
+    return {score,factors,band};
+  },[entries,stats]);
+
+  const stress = useMemo(()=>{
+    const sc=STRESS_SCENARIOS.find(s=>s.id===scenario);
+    if(!sc||!entries.length) return null;
+    const curInv=Object.values(entries[entries.length-1]?.investments||{}).reduce((a,v)=>a+v,0);
+    if(!curInv) return null;
+    const loss=curInv*sc.drop/100;
+    return {...sc,curInv,loss,postCrash:curInv+loss};
+  },[scenario,entries]);
+
+  const pct=v=>`${v>=0?"+":""}${v.toFixed(2)}%`;
+  const mc=v=>v>=1?"#00d4a4":v>=0.5?"#c9a84c":"#ff5252";
+
+  return (
+    <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
+      {!hasData&&(
+        <div style={{padding:"8px 14px",borderRadius:8,background:"rgba(127,119,221,.07)",border:"1px solid rgba(127,119,221,.2)",fontSize:10,color:"#7f77dd"}}>
+          <Sigma size={11} style={{verticalAlign:"middle",marginRight:4}}/> Add 4+ months of investment data for precise VaR. Using estimated parameters for now.
+        </div>
+      )}
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid #dde4ee"}}>
+        {[{id:"var",label:"VaR & CVaR"},{id:"mc",label:"Monte Carlo"},{id:"stress",label:"Stress Tests"},{id:"fragility",label:"Fragility Score"}].map(t=>(
+          <button key={t.id} className={`ax-tab${subTab===t.id?" active":""}`} onClick={()=>setSubTab(t.id)} style={{fontSize:11}}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ── VaR & CVaR ── */}
+      {subTab==="var"&&<>
+        <div style={{fontSize:9,color:"#6b8299",padding:"6px 12px",background:"#f7f9fc",borderRadius:6,border:"1px solid #dde4ee",lineHeight:1.7}}>
+          <strong>VaR (Value at Risk):</strong> Maximum monthly loss at given confidence level.{" "}
+          <strong>CVaR / ES:</strong> Average loss in worst tail scenarios. Based on {stats.n} return observations.
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:10}}>
+          {[
+            {label:"Parametric VaR (95%)",   val:pct(stats.pVaR95),          note:"Monthly loss threshold",  color:"#ff8c42"},
+            {label:"Parametric VaR (99%)",   val:pct(stats.pVaR99),          note:"1-in-100-month tail",      color:"#ff5252"},
+            {label:"Historical VaR (95%)",   val:pct(stats.histVaR95),       note:"Empirical 5th percentile", color:"#ff8c42"},
+            {label:"CVaR / Exp. Shortfall",  val:pct(stats.cvar95),          note:"Avg loss beyond VaR 95%",  color:"#ff5252"},
+            {label:"Annualised Volatility",  val:`${stats.annVol.toFixed(1)}%`, note:"Return std × √12",      color:"#c9a84c"},
+            {label:"Sharpe Ratio",           val:stats.sharpe.toFixed(2),    note:"(ret−rf)/vol × √12",       color:mc(stats.sharpe)},
+            {label:"Sortino Ratio",          val:stats.sortino.toFixed(2),   note:"(ret−rf)/downVol × √12",   color:mc(stats.sortino)},
+            {label:"Treynor Ratio",          val:stats.treynor.toFixed(3),   note:"Excess return per β unit",  color:mc(stats.treynor)},
+            {label:"Max Drawdown",           val:`${stats.maxDD.toFixed(1)}%`, note:"Worst peak-to-trough",   color:"#ff5252"},
+          ].map(m=>(
+            <div key={m.label} className="ax-card" style={{padding:"12px 14px"}}>
+              <div style={{fontSize:9,color:"#6b8299",marginBottom:4}}>{m.label}</div>
+              <div style={{fontSize:17,fontWeight:800,color:m.color,lineHeight:1}}>{m.val}</div>
+              <div style={{fontSize:9,color:"#6b8299",marginTop:3}}>{m.note}</div>
+            </div>
+          ))}
+        </div>
+        <div className="ax-card" style={{padding:"14px 16px"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>Reading the numbers</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:11,color:"#3d617e",lineHeight:1.6}}>
+            <div><strong>VaR 95% {pct(stats.pVaR95)}</strong> — in a normal bad month (1-in-20), expect up to this loss.</div>
+            <div><strong>CVaR 95% {pct(stats.cvar95)}</strong> — in the worst 5% of months, average loss is this. Tail exposure.</div>
+            <div><strong>Sharpe {stats.sharpe.toFixed(2)}</strong> — {stats.sharpe>1?"Excellent (>1.0)":stats.sharpe>0.5?"Acceptable (0.5–1.0)":"Below par (<0.5)"}.</div>
+            <div><strong>Sortino {stats.sortino.toFixed(2)}</strong> — like Sharpe but only penalises downside volatility. Higher is better.</div>
+          </div>
+        </div>
+      </>}
+
+      {/* ── Monte Carlo ── */}
+      {subTab==="mc"&&<>
+        <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          <span style={{fontSize:11,fontWeight:600,color:"#6b8299"}}>Horizon:</span>
+          {[5,10,15,20,30].map(y=>(
+            <button key={y} className="ax-btn" onClick={()=>setMcYears(y)} style={{
+              padding:"4px 10px",fontSize:11,
+              background:mcYears===y?"#7f77dd":"transparent",color:mcYears===y?"#fff":"#6b8299",
+              borderColor:mcYears===y?"#7f77dd":"#dde4ee",fontWeight:mcYears===y?700:400}}>{y}Y</button>
+          ))}
+        </div>
+        <div className="ax-card" style={{padding:"14px 6px 8px"}}>
+          <div style={{paddingLeft:10,fontSize:12,fontWeight:600,marginBottom:2,display:"flex",alignItems:"center",gap:6}}>
+            <Sigma size={13} color="#7f77dd"/> 200-Path Monte Carlo · {mcYears}-Year Wealth Distribution
+          </div>
+          <div style={{paddingLeft:10,fontSize:9,color:"#6b8299",marginBottom:6}}>
+            Bands: 10th · 25th · 50th (median) · 75th · 90th percentile
+          </div>
+          <ResponsiveContainer width="100%" height={270}>
+            <AreaChart data={mcData} margin={{top:4,right:20,left:10,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+              <XAxis dataKey="year" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={v=>`Yr ${v}`}/>
+              <YAxis tick={{fontSize:9,fill:"#6b8299"}} width={55}
+                tickFormatter={v=>v>=1e7?`${(v/1e7).toFixed(0)}Cr`:v>=1e5?`${(v/1e5).toFixed(0)}L`:`${(v/1000).toFixed(0)}K`}/>
+              <Tooltip formatter={(v,n)=>[fmt(v),{p90:"Best 10%",p75:"Top 25%",p50:"Median",p25:"Bottom 25%",p10:"Worst 10%"}[n]||n]}
+                contentStyle={{fontSize:10,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+              <Area type="monotone" dataKey="p90" stroke="#7f77dd" fill="rgba(127,119,221,.05)" strokeWidth={1} dot={false}/>
+              <Area type="monotone" dataKey="p75" stroke="#7f77dd" fill="rgba(127,119,221,.08)" strokeWidth={1} dot={false}/>
+              <Area type="monotone" dataKey="p50" stroke="#7f77dd" fill="rgba(127,119,221,.14)" strokeWidth={2.5} dot={false}/>
+              <Area type="monotone" dataKey="p25" stroke="#c9a84c" fill="rgba(201,168,76,.06)" strokeWidth={1} dot={false}/>
+              <Area type="monotone" dataKey="p10" stroke="#ff5252" fill="rgba(255,82,82,.04)" strokeWidth={1} dot={false}/>
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="ax-card" style={{padding:0,overflow:"hidden"}}>
+          <div style={{fontWeight:600,fontSize:12,padding:"12px 16px",borderBottom:"1px solid #dde4ee"}}>Projected Corpus at Year {mcYears}</div>
+          <div style={{display:"flex",flexWrap:"wrap"}}>
+            {[{key:"p10",label:"Worst 10%",note:"Bear case",c:"#ff5252"},{key:"p25",label:"Bottom Quartile",note:"Pessimistic",c:"#ff8c42"},
+              {key:"p50",label:"Median",note:"Most likely",c:"#7f77dd"},{key:"p75",label:"Top Quartile",note:"Optimistic",c:"#c9a84c"},
+              {key:"p90",label:"Best 10%",note:"Bull case",c:"#00d4a4"}].map(b=>(
+              <div key={b.key} style={{flex:"1 1 120px",padding:"12px 14px",borderRight:"1px solid #dde4ee",borderBottom:"1px solid #dde4ee"}}>
+                <div style={{fontSize:9,color:"#6b8299",fontWeight:600,textTransform:"uppercase",letterSpacing:".04em"}}>{b.note}</div>
+                <div style={{fontSize:9,color:"#6b8299",marginBottom:4}}>{b.label}</div>
+                <div style={{fontSize:16,fontWeight:700,color:b.c}}>{mcData[mcData.length-1]?.[b.key]?fmt(mcData[mcData.length-1][b.key]):"—"}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{fontSize:9,color:"#6b8299",padding:"5px 10px",background:"#f7f9fc",borderRadius:6,border:"1px solid #dde4ee"}}>
+          GBM simulation: μ={stats.annMean.toFixed(1)}%/yr, σ={stats.annVol.toFixed(1)}%/yr. Not a guarantee of future returns.
+        </div>
+      </>}
+
+      {/* ── Stress Tests ── */}
+      {subTab==="stress"&&<>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {STRESS_SCENARIOS.map(sc=>(
+            <button key={sc.id} onClick={()=>setScenario(sc.id)} className="ax-btn" style={{
+              fontSize:10,padding:"4px 10px",
+              background:scenario===sc.id?"rgba(255,82,82,.1)":"transparent",
+              color:scenario===sc.id?"#ff5252":"#6b8299",
+              borderColor:scenario===sc.id?"#ff5252":"#dde4ee",fontWeight:scenario===sc.id?700:400}}>{sc.label}</button>
+          ))}
+        </div>
+        {stress?(
+          <>
+            <div style={{padding:"12px 16px",borderRadius:10,background:"rgba(255,82,82,.04)",border:"1.5px solid rgba(255,82,82,.2)"}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#ff5252",marginBottom:4}}>{stress.label}</div>
+              <div style={{fontSize:11,color:"#3d617e",marginBottom:12}}>{stress.desc}</div>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                {[
+                  {l:"Current Portfolio",val:fmt(stress.curInv),c:"#1a2433",bg:"#fff"},
+                  {l:`Crash Loss (${stress.drop}%)`,val:fmt(stress.loss),c:"#ff5252",bg:"rgba(255,82,82,.06)"},
+                  {l:"Post-Crash Value",val:fmt(stress.postCrash),c:"#00d4a4",bg:"rgba(0,212,164,.07)"},
+                  {l:"Typical Recovery",val:`${stress.recovery} months`,c:"#c9a84c",bg:"#f8fafc"},
+                ].map(s=>(
+                  <div key={s.l} style={{flex:"1 1 110px",padding:"10px 12px",borderRadius:8,background:s.bg,border:"1px solid #dde4ee"}}>
+                    <div style={{fontSize:9,color:"#6b8299"}}>{s.l}</div>
+                    <div style={{fontSize:14,fontWeight:700,color:s.c}}>{s.val}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="ax-card" style={{padding:"14px 16px"}}>
+              <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>Playbook for this scenario</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:11,color:"#3d617e",lineHeight:1.6}}>
+                <div>✅ <strong>Don't panic-sell</strong> — realising losses locks them in permanently.</div>
+                <div>✅ <strong>Continue SIPs</strong> — lower prices = more units. Rupee cost averaging works best in crashes.</div>
+                <div>✅ <strong>Emergency fund</strong> — keep 6 months of expenses liquid so you never need to sell equities.</div>
+                {stress.drop<-30&&<div>📈 <strong>Rebalance opportunity</strong> — severe crashes often create multi-year buying windows.</div>}
+              </div>
+            </div>
+          </>
+        ):(
+          <div style={{textAlign:"center",padding:36,color:"#6b8299",fontSize:12}}>Add investment data to run stress tests on your portfolio.</div>
+        )}
+      </>}
+
+      {/* ── Fragility Score ── */}
+      {subTab==="fragility"&&<>
+        {fragility?(
+          <>
+            <div style={{padding:"16px 20px",borderRadius:12,border:`2px solid ${fragility.band.color}40`,background:`${fragility.band.color}08`,display:"flex",gap:18,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{textAlign:"center",flexShrink:0}}>
+                <div style={{fontSize:48,fontWeight:800,color:fragility.band.color,lineHeight:1}}>{fragility.score}</div>
+                <div style={{fontSize:10,color:fragility.band.color,fontWeight:700}}>/ 100</div>
+                <div style={{fontSize:11,fontWeight:700,color:fragility.band.color,marginTop:4}}>{fragility.band.label}</div>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:"#1a2433",marginBottom:4}}>Portfolio Fragility Index</div>
+                <div style={{fontSize:11,color:"#3d617e",lineHeight:1.5,marginBottom:6}}>{fragility.band.desc}</div>
+                <div style={{fontSize:9,color:"#6b8299"}}>Lower score = more robust. Scale: 0 (fortress) → 100 (fragile).</div>
+              </div>
+            </div>
+            <div className="ax-card" style={{padding:"14px 16px"}}>
+              <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Risk Factor Breakdown</div>
+              {fragility.factors.map(f=>(
+                <div key={f.label} style={{marginBottom:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:11}}>
+                    <span style={{fontWeight:600,color:"#1a2433"}}>{f.label}</span>
+                    <span style={{fontWeight:700,color:f.color}}>{f.score}/{f.max} pts</span>
+                  </div>
+                  <div style={{height:6,borderRadius:3,background:"#dde4ee",overflow:"hidden",marginBottom:3}}>
+                    <div style={{width:`${(f.score/f.max)*100}%`,height:"100%",background:f.color,borderRadius:3}}/>
+                  </div>
+                  <div style={{fontSize:9,color:"#6b8299"}}>{f.desc}</div>
+                </div>
+              ))}
+            </div>
+            <div className="ax-card" style={{padding:"14px 16px"}}>
+              <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>Prescriptions</div>
+              <div style={{display:"flex",flexDirection:"column",gap:5,fontSize:11,color:"#3d617e",lineHeight:1.6}}>
+                {fragility.score>=70&&<div>🔴 <strong>Critical fragility</strong> — reduce debt and build emergency reserves before growing investments.</div>}
+                {fragility.factors[0].score>20&&<div>📉 Reduce volatility by adding large-cap or debt allocation.</div>}
+                {fragility.factors[2].score>15&&<div>💳 Debt-to-investment ratio too high — aggressively pay down loans.</div>}
+                {fragility.factors[3].score>10&&<div>💰 Target 20%+ savings rate to build resilience buffers.</div>}
+                {fragility.score<=30&&<div>✅ <strong>Robust portfolio</strong> — continue current strategy, review allocations annually.</div>}
+              </div>
+            </div>
+          </>
+        ):(
+          <div style={{textAlign:"center",padding:36,color:"#6b8299",fontSize:12}}>Add monthly data to calculate your fragility score.</div>
+        )}
+      </>}
+    </div>
+  );
+}
+
+class MFErrorBoundary extends Component {
+  constructor(p){super(p);this.state={err:null};}
+  static getDerivedStateFromError(e){return{err:e};}
+  render(){
+    if(this.state.err) return(
+      <div style={{padding:24,color:"#ff5252",fontSize:12,fontFamily:"monospace"}}>
+        <strong>MF Compare error:</strong>
+        <pre style={{marginTop:8,fontSize:10,whiteSpace:"pre-wrap",background:"#fff5f5",padding:12,borderRadius:6,border:"1px solid #ffcccc"}}>{this.state.err.message+"\n\n"+this.state.err.stack}</pre>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
+// ── MF Compare Tab ────────────────────────────────────────────────────────────
+function MFCompareTab({ entries=[], mode="intermediate" }) {
+  const [subTab, setSubTab] = useState("performance");
+  const [period, setPeriod] = useState("5y");
+  const [catFilter, setCat] = useState("all");
+  const [selectedIds, setSel] = useState(new Set(["fc_ppfas","mc_hdfc","lc_axis","sc_sbi"]));
+  const [expandedMgr, setExpandedMgr] = useState(null);
+  const [evCatFilter, setEvCatFilter] = useState("All");
+
+  const toggle = id => setSel(prev=>{
+    const s=new Set(prev);
+    if(s.has(id)){if(s.size>1)s.delete(id);}else{if(s.size<6)s.add(id);}
+    return s;
+  });
+
+  const periodMonths = {"1y":12,"3y":36,"5y":60,"10y":120};
+  const cats = ["all",...new Set(MF_FUNDS.map(f=>f.category))];
+  const visibleFunds = MF_FUNDS.filter(f=>catFilter==="all"||f.category===catFilter);
+  // (remaining component body replaced below)
+  const activeFunds  = MF_FUNDS.filter(f=>selectedIds.has(f.id));
+
+  const chartData = useMemo(()=>{
+    if(!activeFunds.length) return [];
+    const months=periodMonths[period];
+    const refData=MF_NAV[activeFunds[0].id];
+    const total=refData.length, from=Math.max(0,total-months), sliceLen=total-from;
+    return refData.slice(from).map((item,idx)=>{
+      const row={month:item.month};
+      activeFunds.forEach(f=>{
+        const fd=MF_NAV[f.id], offset=fd.length-sliceLen;
+        const baseNav=fd[Math.max(0,offset)]?.nav||1;
+        const pt=fd[offset+idx];
+        if(pt) row[f.id]=Math.round(pt.nav/baseNav*10000)/100;
+      });
+      return row;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[selectedIds,period]);
+
+  // Full 10Y chart data for events tab (all 8 funds, raw nav, normalized per fund)
+  const fullChartData = useMemo(()=>{
+    const refData=MF_NAV[MF_FUNDS[0].id];
+    return refData.map((item,idx)=>{
+      const row={month:item.month};
+      activeFunds.forEach(f=>{
+        const fd=MF_NAV[f.id], base=fd[0]?.nav||1;
+        if(fd[idx]) row[f.id]=Math.round(fd[idx].nav/base*10000)/100;
+      });
+      return row;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[selectedIds]);
+
+  const chartMonths = chartData.map(d=>d.month);
+  const visibleEvents = MF_EVENTS.filter(ev=>chartMonths.some(m=>m>=ev.start&&m<=ev.end)).map(ev=>({
+    ...ev,
+    x1:chartMonths.find(m=>m>=ev.start)||ev.start,
+    x2:[...chartMonths].reverse().find(m=>m<=ev.end)||ev.end,
+  }));
+  const fullChartMonths = fullChartData.map(d=>d.month);
+  const fullVisibleEvents = MF_EVENTS
+    .filter(ev => evCatFilter==="All" || ev.cat===evCatFilter)
+    .map(ev=>({
+      ...ev,
+      x1:fullChartMonths.find(m=>m>=ev.start)||ev.start,
+      x2:[...fullChartMonths].reverse().find(m=>m<=ev.end)||ev.end,
+    }));
+
+  const cagrTable = activeFunds.map(f=>({
+    fund:f,
+    r1:  mfCAGR(MF_NAV[f.id],1),
+    r3:  mfCAGR(MF_NAV[f.id],3),
+    r5:  mfCAGR(MF_NAV[f.id],5),
+    r10: mfCAGR(MF_NAV[f.id],10),
+  })).sort((a,b)=>(parseFloat(b.r10)||0)-(parseFloat(a.r10)||0));
+
+  // My MF data from user's monthly entries
+  const myMFPoints = useMemo(()=>{
+    if(!entries?.length) return [];
+    return [...entries].filter(e=>(e.investments?.mutualFunds||0)>0)
+      .sort((a,b)=>a.id.localeCompare(b.id))
+      .map(e=>({month:e.id,rawValue:e.investments.mutualFunds}));
+  },[entries]);
+
+  const myCompareData = useMemo(()=>{
+    if(!myMFPoints.length) return [];
+    const base=myMFPoints[0].rawValue, startMonth=myMFPoints[0].month;
+    return myMFPoints.map(pt=>{
+      const row={month:pt.month,myMF:Math.round(pt.rawValue/base*10000)/100};
+      activeFunds.forEach(f=>{
+        const navs=MF_NAV[f.id],si=navs.findIndex(d=>d.month>=startMonth);
+        if(si<0)return; const bNav=navs[si].nav;
+        const ci=navs.findIndex(d=>d.month>=pt.month);
+        if(ci>=0) row[f.id]=Math.round(navs[ci].nav/bNav*10000)/100;
+      });
+      return row;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[myMFPoints,selectedIds]);
+
+  const managerMap={};
+  MF_FUNDS.forEach(f=>{
+    if(!managerMap[f.manager]) managerMap[f.manager]={manager:f.manager,house:f.house,funds:[],totalAUM:0};
+    const r1=mfCAGR(MF_NAV[f.id],1),r3=mfCAGR(MF_NAV[f.id],3),r5=mfCAGR(MF_NAV[f.id],5),r10=mfCAGR(MF_NAV[f.id],10);
+    managerMap[f.manager].funds.push({...f,r1,r3,r5,r10});
+    managerMap[f.manager].totalAUM += parseInt(f.aum.replace(/,/g,""))||0;
+  });
+  const managers=Object.values(managerMap).map(m=>({
+    ...m,
+    avgR10:m.funds.reduce((a,f)=>a+(f.r10?parseFloat(f.r10):0),0)/m.funds.length,
+    bestFund:[...m.funds].sort((a,b)=>(parseFloat(b.r10)||0)-(parseFloat(a.r10)||0))[0],
+  })).sort((a,b)=>b.avgR10-a.avgR10);
+
+  // Filter managers dynamically: by selected category OR by selected fund IDs
+  const filteredManagers = catFilter !== "all"
+    ? managers.filter(m => m.funds.some(f => f.category === catFilter))
+    : managers.filter(m => m.funds.some(f => selectedIds.has(f.id)));
+  const mgrContext = catFilter !== "all" ? `${catFilter} funds` : "selected funds";
+
+  const eventDrawdowns = MF_EVENTS.map(ev=>{
+    const analysis=activeFunds.map(f=>{
+      const navs=MF_NAV[f.id];
+      const evNavs=navs.filter(d=>d.month>=ev.start&&d.month<=ev.end);
+      if(!evNavs.length) return {fund:f,drawdown:null,recovered:false,recoveryMonth:null};
+      const before=navs.filter(d=>d.month<ev.start);
+      const peak=before.length?Math.max(...before.map(d=>d.nav)):evNavs[0].nav;
+      const trough=Math.min(...evNavs.map(d=>d.nav));
+      const drawdown=((trough-peak)/peak*100).toFixed(1);
+      const after=navs.filter(d=>d.month>ev.end);
+      const recoveryPt=after.find(d=>d.nav>=peak);
+      return {fund:f,drawdown,recovered:!!recoveryPt,recoveryMonth:recoveryPt?.month};
+    });
+    return {event:ev,analysis};
+  });
+
+  const fmtTick = m=>{const[y,mo]=m.split("-");return mo==="01"?y:mo==="07"?`Jul '${y.slice(2)}`:""};
+  const rCol = v=>{if(!v&&v!==0)return"#6b8299";const n=parseFloat(v);return n>=16?"#00d4a4":n>=12?"#c9a84c":n>=8?"#ff8c42":"#ff5252";};
+  const fmtAUM = n=>{const v=n*10000000;return v>=1e7?`₹${(v/1e7).toFixed(0)}Cr`:v>=1e5?`₹${(v/1e5).toFixed(0)}L`:`₹${Math.round(v/1000)}K`;};
+  const TH = ({children,right,center})=><th style={{textAlign:center?"center":right?"right":"left",padding:"8px 11px",color:"#6b8299",fontWeight:600,fontSize:10,whiteSpace:"nowrap",background:"#f7f9fc"}}>{children}</th>;
+  const TD = ({children,right,center,style={}})=><td style={{padding:"8px 11px",textAlign:center?"center":right?"right":"left",...style}}>{children}</td>;
+
+  return (
+    <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
+
+      {/* Data source */}
+      <div style={{fontSize:9,color:"#6b8299",padding:"5px 12px",background:"#f7f9fc",borderRadius:6,border:"1px solid #dde4ee",lineHeight:1.6}}>
+        <strong style={{color:"#3d617e"}}>Data Source:</strong> Illustrative NAV data modelled on fund parameters published by{" "}
+        <strong>AMFI India</strong> (amfiindia.com), <strong>Value Research Online</strong>, and <strong>Morningstar India</strong>.
+        AUM, ER &amp; manager details as of Q1 2025. For live NAV: <strong>mfapi.in</strong> or <strong>amfiindia.com</strong>
+      </div>
+
+      {/* Sub-tabs */}
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid #dde4ee"}}>
+        {[
+          {id:"performance",label:"Performance"},
+          {id:"manager",label:"By Fund Manager"},
+          {id:"events",label:"Market Events"},
+          {id:"mymf",label:"My MF vs Market"},
+        ].map(t=>(
+          <button key={t.id} className={`ax-tab${subTab===t.id?" active":""}`} onClick={()=>setSubTab(t.id)} style={{fontSize:11}}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Fund selector */}
+      <div className="ax-card" style={{padding:"12px 14px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:6,marginBottom:8}}>
+          <span style={{fontSize:11,fontWeight:600,color:"#6b8299"}}>
+            Select Funds <span style={{fontWeight:400,color:"#aab8c8"}}>(max 6 · {selectedIds.size} selected)</span>
+          </span>
+          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+            {cats.map(c=>(
+              <button key={c} onClick={()=>setCat(c)} className="ax-btn" style={{
+                fontSize:9,padding:"3px 8px",
+                background:catFilter===c?"#1a2433":"transparent",
+                color:catFilter===c?"#c9a84c":"#6b8299",
+                borderColor:catFilter===c?"#c9a84c":"#dde4ee",fontWeight:catFilter===c?700:400,
+              }}>{c==="all"?`All (${MF_FUNDS.length})`:c}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",maxHeight:100,overflowY:"auto"}}>
+          {visibleFunds.map(f=>{
+            const sel=selectedIds.has(f.id);
+            return (
+              <button key={f.id} onClick={()=>toggle(f.id)} style={{
+                display:"flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:16,
+                border:`1.5px solid ${sel?f.color:"#dde4ee"}`,background:sel?`${f.color}15`:"transparent",
+                cursor:"pointer",fontSize:10,color:sel?f.color:"#6b8299",fontWeight:sel?600:400,
+                flexShrink:0,transition:"all .15s",userSelect:"none",
+              }}>
+                <span style={{width:7,height:7,borderRadius:"50%",background:sel?f.color:"#dde4ee"}}/>
+                {f.shortName}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── PERFORMANCE TAB ── */}
+      {subTab==="performance" && <>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <span style={{fontSize:11,color:"#6b8299",marginRight:2}}>Period:</span>
+          {["1y","3y","5y","10y"].map(p=>(
+            <button key={p} onClick={()=>setPeriod(p)} className="ax-btn" style={{
+              padding:"4px 10px",fontSize:11,
+              background:period===p?"#c9a84c":"transparent",
+              color:period===p?"#1a1a1a":"#6b8299",
+              borderColor:period===p?"#c9a84c":"#dde4ee",fontWeight:period===p?700:400,
+            }}>{p.toUpperCase()}</button>
+          ))}
+        </div>
+
+        <div className="ax-card" style={{padding:"14px 6px 8px"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:4,paddingLeft:10,display:"flex",alignItems:"center",gap:6}}>
+            <TrendingUp size={13} color="#c9a84c"/> Growth of ₹100 Invested · {period.toUpperCase()}
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={chartData} margin={{top:4,right:20,left:-10,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+              <XAxis dataKey="month" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={fmtTick} interval="preserveStartEnd"/>
+              <YAxis tick={{fontSize:9,fill:"#6b8299"}} domain={["auto","auto"]} tickFormatter={v=>`${v}`}/>
+              <Tooltip formatter={(v,name)=>[`₹${v}`,MF_FUNDS.find(f=>f.id===name)?.shortName||name]}
+                labelFormatter={l=>fmtML(l)} contentStyle={{fontSize:11,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+              {/* Turbulent shading on performance chart too */}
+              {visibleEvents.map(ev=>(
+                <ReferenceArea key={ev.id} x1={ev.x1} x2={ev.x2} fill="rgba(255,82,82,.08)" stroke="rgba(255,82,82,.3)" strokeWidth={0}/>
+              ))}
+              {activeFunds.map(f=>(
+                <Line key={f.id} type="monotone" dataKey={f.id} stroke={f.color} dot={false} strokeWidth={2} name={f.id}/>
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* ── BEGINNER: Fund Report Cards ── */}
+        {mode==="beginner" && (
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {activeFunds.map(f=>{
+              const m=cagrTable.find(r=>r.fund.id===f.id);
+              const cagr=m?.r10?parseFloat(m.r10):f.baseRet;
+              const alpha=cagr-12;
+              const grade=fundGrade(cagr,alpha);
+              const risk=riskBand(f.vol, bkMaxDD(MF_NAV[f.id]));
+              const finalVal=Math.round(MF_NAV[f.id][MF_NAV[f.id].length-1].nav);
+              return(
+                <div key={f.id} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${f.color}25`,background:"#fff",boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:10}}>
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
+                        <span style={{width:10,height:10,borderRadius:"50%",background:f.color,flexShrink:0}}/>
+                        <span style={{fontWeight:700,fontSize:13,color:"#1a2433"}}>{f.name}</span>
+                      </div>
+                      <div style={{fontSize:10,color:"#6b8299",marginBottom:8}}>{f.category} · {f.house}</div>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                        <span style={{padding:"3px 9px",borderRadius:16,background:`${risk.color}12`,fontSize:10,fontWeight:600,color:risk.color}}>{risk.emoji} {risk.label}</span>
+                        <span style={{padding:"3px 9px",borderRadius:16,fontSize:10,fontWeight:600,
+                          background:alpha>0?"rgba(0,212,164,.1)":"rgba(255,82,82,.08)",
+                          color:alpha>0?"#00d4a4":"#ff5252"}}>{alpha>0?`✅ Beats Nifty 50 (+${alpha.toFixed(1)}%/yr)`:"❌ Behind Nifty 50"}</span>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"center",padding:"8px 14px",borderRadius:10,background:`${grade.color}12`,border:`1.5px solid ${grade.color}35`,flexShrink:0}}>
+                      <div style={{fontSize:24,fontWeight:800,color:grade.color,lineHeight:1}}>{grade.grade}</div>
+                      <div style={{fontSize:9,color:grade.color,fontWeight:600}}>{grade.label}</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <div style={{flex:"1 1 100px",padding:"8px 10px",background:"#f7f9fc",borderRadius:8,textAlign:"center"}}>
+                      <div style={{fontSize:8,color:"#6b8299"}}>₹1 lakh grew to</div>
+                      <div style={{fontSize:16,fontWeight:700,color:"#1a2433"}}>₹{finalVal.toLocaleString("en-IN")}</div>
+                      <div style={{fontSize:8,color:"#6b8299"}}>in 10 years</div>
+                    </div>
+                    <div style={{flex:"1 1 100px",padding:"8px 10px",background:"#f7f9fc",borderRadius:8,textAlign:"center"}}>
+                      <div style={{fontSize:8,color:"#6b8299"}}>Annual growth</div>
+                      <div style={{fontSize:16,fontWeight:700,color:"#00d4a4"}}>{m?.r10||cagr.toFixed(1)}%</div>
+                      <div style={{fontSize:8,color:"#6b8299"}}>CAGR (10 years)</div>
+                    </div>
+                    <div style={{flex:"2 1 150px",padding:"8px 10px",background:"#f7f9fc",borderRadius:8}}>
+                      <div style={{fontSize:8,color:"#6b8299",marginBottom:3}}>Best suited for</div>
+                      <div style={{fontSize:10,fontWeight:600,color:"#3d617e"}}>{investorType(f.category)}</div>
+                      <div style={{fontSize:9,color:"#6b8299",marginTop:2}}>{risk.tip}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── INVESTOR / PRO: Metrics table ── */}
+        {mode!=="beginner" && <div className="ax-card" style={{padding:0,overflow:"hidden"}}>
+          <div style={{fontWeight:600,fontSize:12,padding:"12px 16px",borderBottom:"1px solid #dde4ee",display:"flex",alignItems:"center",gap:6}}>
+            <Activity size={13}/> CAGR Returns Comparison
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+              <thead>
+                <tr style={{background:"#f7f9fc"}}>
+                  <TH>Fund</TH><TH>Manager</TH><TH>Category</TH>
+                  <TH right>AUM (Cr)</TH><TH right>ER%</TH><TH right>Risk</TH>
+                  <TH right>1Y %</TH><TH right>3Y %</TH><TH right>5Y %</TH><TH right>10Y %</TH>
+                </tr>
+              </thead>
+              <tbody>
+                {cagrTable.map((row,i)=>(
+                  <tr key={row.fund.id} style={{borderTop:"1px solid #dde4ee",background:i%2===0?"#fff":"#fafbfc"}}>
+                    <TD><div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",background:row.fund.color,flexShrink:0}}/>
+                      <span style={{fontWeight:600,color:"#1a2433"}}>{row.fund.shortName}</span>
+                    </div></TD>
+                    <TD style={{color:"#3d617e",whiteSpace:"nowrap"}}>{row.fund.manager}</TD>
+                    <TD><span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"#f0f4fa",color:"#6b8299",whiteSpace:"nowrap"}}>{row.fund.category}</span></TD>
+                    <TD right style={{color:"#3d617e"}}>₹{row.fund.aum}</TD>
+                    <TD right style={{color:"#ff8c42"}}>{row.fund.er}%</TD>
+                    <TD right><span style={{fontSize:9,padding:"2px 6px",borderRadius:10,
+                      background:row.fund.risk==="Very High"?"rgba(255,82,82,.1)":row.fund.risk==="High"?"rgba(255,140,66,.1)":"rgba(74,158,255,.1)",
+                      color:row.fund.risk==="Very High"?"#ff5252":row.fund.risk==="High"?"#ff8c42":"#4a9eff"
+                    }}>{row.fund.risk}</span></TD>
+                    {[row.r1,row.r3,row.r5,row.r10].map((r,j)=>(
+                      <TD key={j} right style={{fontWeight:600,color:rCol(r)}}>{r?`${r}%`:"—"}</TD>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>}
+      </>}
+
+      {/* ── MANAGER TAB ── */}
+      {subTab==="manager" && (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{fontSize:10,color:"#6b8299",paddingBottom:4,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontWeight:700,color:"#3d617e"}}>{filteredManagers.length} fund manager{filteredManagers.length!==1?"s":""}</span>
+            <span>managing {mgrContext} · click a card to expand fund details</span>
+          </div>
+          {filteredManagers.map((m)=>{
+          const isExp=expandedMgr===m.manager;
+          const fundsSorted=[...m.funds].sort((a,b)=>(parseFloat(b.r10)||0)-(parseFloat(a.r10)||0));
+          const bar=Math.min(m.avgR10/22*100,100);
+          const initials=m.manager.split(" ").map(w=>w[0]).slice(0,2).join("");
+          return (
+            <div key={m.manager} className="ax-card" style={{padding:0,overflow:"hidden"}}>
+              <div onClick={()=>setExpandedMgr(isExp?null:m.manager)}
+                style={{padding:"13px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,
+                        background:isExp?"#fafbfc":"#fff",userSelect:"none"}}>
+                <div style={{width:34,height:34,borderRadius:8,background:`${m.bestFund?.color||"#4a9eff"}18`,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  border:`1.5px solid ${m.bestFund?.color||"#4a9eff"}40`,flexShrink:0}}>
+                  <span style={{fontSize:12,fontWeight:700,color:m.bestFund?.color||"#4a9eff"}}>{initials}</span>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:12,color:"#1a2433"}}>{m.manager}</span>
+                    <span style={{fontSize:9,color:"#6b8299",background:"#f0f4fa",padding:"2px 6px",borderRadius:6}}>{m.house}</span>
+                    <span style={{fontSize:9,fontWeight:600,color:"#00d4a4",background:"rgba(0,212,164,.08)",padding:"2px 6px",borderRadius:6}}>
+                      {m.funds.length} fund{m.funds.length>1?"s":""}
+                    </span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:12,fontSize:10,color:"#6b8299",flexWrap:"wrap"}}>
+                    <span>AUM: <strong style={{color:"#3d617e"}}>{fmtAUM(m.totalAUM)}</strong></span>
+                    <span>Avg 10Y: <strong style={{color:rCol(m.avgR10.toFixed(1))}}>{m.avgR10.toFixed(1)}%</strong></span>
+                    <span>Best: <strong style={{color:m.bestFund?.color}}>{m.bestFund?.shortName} ({m.bestFund?.r10}%)</strong></span>
+                  </div>
+                  <div style={{marginTop:5,width:"100%",height:3,background:"#dde4ee",borderRadius:2}}>
+                    <div style={{width:`${bar}%`,height:"100%",background:rCol(m.avgR10.toFixed(1)),borderRadius:2}}/>
+                  </div>
+                </div>
+                <div style={{flexShrink:0,color:"#aab8c8"}}>{isExp?<ChevronDown size={15}/>:<ChevronRight size={15}/>}</div>
+              </div>
+
+              {isExp&&(
+                <div style={{borderTop:"1px solid #dde4ee"}}>
+                  <div style={{overflowX:"auto"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                      <thead><tr><TH>Fund</TH><TH>Category</TH><TH right>AUM</TH><TH right>ER%</TH><TH right>Risk</TH><TH right>1Y%</TH><TH right>3Y%</TH><TH right>5Y%</TH><TH right>10Y%</TH><TH center>Rank</TH></tr></thead>
+                      <tbody>
+                        {fundsSorted.map((f,fi)=>(
+                          <tr key={f.id} style={{borderTop:"1px solid #dde4ee",background:fi%2===0?"#fff":"#fafbfc"}}>
+                            <TD><div style={{display:"flex",alignItems:"center",gap:5}}>
+                              <span style={{width:7,height:7,borderRadius:"50%",background:f.color,flexShrink:0}}/>
+                              <span style={{fontWeight:600,color:"#1a2433",whiteSpace:"nowrap"}}>{f.shortName}</span>
+                            </div></TD>
+                            <TD><span style={{fontSize:9,padding:"2px 5px",borderRadius:8,background:"#f0f4fa",color:"#6b8299",whiteSpace:"nowrap"}}>{f.category}</span></TD>
+                            <TD right style={{fontSize:10,color:"#3d617e",whiteSpace:"nowrap"}}>{fmtAUM(parseInt(f.aum.replace(/,/g,""))||0)}</TD>
+                            <TD right style={{fontSize:10,color:"#ff8c42"}}>{f.er}%</TD>
+                            <TD right><span style={{fontSize:9,padding:"2px 5px",borderRadius:8,whiteSpace:"nowrap",fontWeight:600,
+                              background:f.risk==="Very High"?"rgba(255,82,82,.1)":f.risk==="High"?"rgba(255,140,66,.1)":"rgba(74,158,255,.1)",
+                              color:f.risk==="Very High"?"#ff5252":f.risk==="High"?"#ff8c42":"#4a9eff"}}>{f.risk}</span></TD>
+                            {[f.r1,f.r3,f.r5,f.r10].map((r,j)=>(
+                              <TD key={j} right style={{fontWeight:700,color:rCol(r)}}>{r?`${r}%`:"—"}</TD>
+                            ))}
+                            <TD center>
+                              <span style={{width:20,height:20,borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",
+                                background:fi===0?"rgba(201,168,76,.15)":fi===1?"rgba(0,212,164,.1)":"#f0f4fa",
+                                color:fi===0?"#c9a84c":fi===1?"#00d4a4":"#6b8299",fontWeight:700,fontSize:10}}>{fi+1}</span>
+                            </TD>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{padding:"10px 16px 12px",background:"#fafbfc"}}>
+                    <div style={{fontSize:10,fontWeight:600,color:"#6b8299",marginBottom:7}}>10Y CAGR comparison</div>
+                    {fundsSorted.map(f=>(
+                      <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                        <div style={{width:80,fontSize:9,color:f.color,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>{f.shortName}</div>
+                        <div style={{flex:1,height:13,background:"#dde4ee",borderRadius:3,overflow:"hidden"}}>
+                          <div style={{width:`${Math.min((f.r10?parseFloat(f.r10):0)/22*100,100)}%`,height:"100%",background:f.color,borderRadius:3}}/>
+                        </div>
+                        <div style={{width:42,textAlign:"right",fontSize:10,fontWeight:700,color:rCol(f.r10),flexShrink:0}}>{f.r10?`${f.r10}%`:"—"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        </div>
+      )}
+
+      {/* ── EVENTS TAB ── */}
+      {subTab==="events" && <>
+        <div className="ax-card" style={{padding:"14px 6px 8px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,paddingLeft:10,flexWrap:"wrap",gap:6}}>
+            <div style={{fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+              <AlertTriangle size={13} color="#ff5252"/> 10-Year NAV · Turbulent Periods in Red
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:5,paddingRight:10}}>
+              <span style={{width:10,height:10,background:"rgba(255,82,82,.25)",border:"1px solid rgba(255,82,82,.5)",borderRadius:2,display:"inline-block"}}/>
+              <span style={{fontSize:9,color:"#ff5252",fontWeight:600}}>Turbulent period</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={fullChartData} margin={{top:4,right:20,left:-10,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+              <XAxis dataKey="month" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={fmtTick} interval="preserveStartEnd"/>
+              <YAxis tick={{fontSize:9,fill:"#6b8299"}} domain={["auto","auto"]}/>
+              <Tooltip formatter={(v,name)=>[`₹${v}`,MF_FUNDS.find(f=>f.id===name)?.shortName||name]}
+                labelFormatter={l=>fmtML(l)} contentStyle={{fontSize:10,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+              {fullVisibleEvents.map(ev=>(
+                <ReferenceArea key={ev.id} x1={ev.x1} x2={ev.x2}
+                  fill={ev.fill} stroke={ev.stroke} strokeOpacity={0.4} strokeWidth={0}/>
+              ))}
+              {activeFunds.map(f=>(
+                <Line key={f.id} type="monotone" dataKey={f.id} stroke={f.color} dot={false} strokeWidth={1.8} name={f.id}/>
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Category filter */}
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{fontSize:10,color:"#6b8299",fontWeight:600,marginRight:2}}>Category:</span>
+          {["All",...Object.keys(MF_EVENT_CATS)].map(cat=>{
+            const cfg=MF_EVENT_CATS[cat];
+            const active=evCatFilter===cat;
+            return(
+              <button key={cat} onClick={()=>setEvCatFilter(cat)} className="ax-btn" style={{
+                fontSize:10,padding:"3px 9px",
+                background:active?(cfg?.bg||"rgba(201,168,76,.1)"):"transparent",
+                color:active?(cfg?.color||"#c9a84c"):"#6b8299",
+                borderColor:active?(cfg?.color||"#c9a84c"):"#dde4ee",fontWeight:active?700:400,
+              }}>{cat}</button>
+            );
+          })}
+        </div>
+
+        {/* Event cards */}
+        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {MF_EVENTS.filter(ev=>evCatFilter==="All"||ev.cat===evCatFilter).map(ev=>{
+            const cfg=MF_EVENT_CATS[ev.cat]||{color:"#ff5252",bg:"rgba(255,82,82,.06)"};
+            return(
+              <div key={ev.id} style={{padding:"9px 12px",borderRadius:8,
+                border:`1.5px solid ${ev.ongoing?cfg.color:cfg.color+"35"}`,
+                background:ev.ongoing?cfg.bg.replace(/[\d.]+\)$/,"0.1)"):cfg.bg,
+                fontSize:10,flex:"1 1 170px",minWidth:145,
+                boxShadow:ev.ongoing?`0 0 0 2px ${cfg.color}25`:undefined}}>
+                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3,flexWrap:"wrap"}}>
+                  <span style={{fontSize:8,fontWeight:700,padding:"2px 6px",borderRadius:8,
+                    background:cfg.color,color:"#fff",textTransform:"uppercase",letterSpacing:".05em"}}>{ev.cat}</span>
+                  <span style={{fontWeight:700,color:cfg.color,fontSize:10}}>{ev.label}</span>
+                  {ev.ongoing&&(
+                    <span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:8,fontWeight:700,
+                      color:"#ff3434",background:"rgba(255,52,52,.12)",padding:"1px 6px",borderRadius:8,border:"1px solid rgba(255,52,52,.3)"}}>
+                      <span style={{width:5,height:5,borderRadius:"50%",background:"#ff3434",
+                        animation:"mf-pulse 1.4s ease-in-out infinite",display:"inline-block"}}/>
+                      LIVE
+                    </span>
+                  )}
+                </div>
+                <div style={{fontSize:9,color:"#6b8299",marginBottom:2}}>
+                  {ev.start} → {ev.ongoing?"Present":ev.end}
+                </div>
+                <div style={{fontSize:9,color:"#3d617e",lineHeight:1.5}}>{ev.desc}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="ax-card" style={{padding:0,overflow:"hidden"}}>
+          <div style={{fontWeight:600,fontSize:12,padding:"12px 16px",borderBottom:"1px solid #dde4ee",display:"flex",alignItems:"center",gap:6}}>
+            <TrendingDown size={13} color="#ff5252"/> Max Drawdown &amp; Recovery
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+              <thead>
+                <tr><TH>Event</TH>{activeFunds.map(f=><TH center key={f.id}><span style={{color:f.color}}>{f.shortName}</span></TH>)}</tr>
+              </thead>
+              <tbody>
+                {eventDrawdowns.map((ed,i)=>(
+                  <tr key={ed.event.id} style={{borderTop:"1px solid #dde4ee",background:i%2===0?"#fff":"#fff9f9"}}>
+                    <TD>
+                      <div style={{fontWeight:600,color:"#ff5252",fontSize:11}}>{ed.event.label}</div>
+                      <div style={{fontSize:9,color:"#6b8299"}}>{ed.event.start} → {ed.event.end}</div>
+                    </TD>
+                    {ed.analysis.map(a=>(
+                      <TD center key={a.fund.id}>
+                        {a.drawdown!==null?(
+                          <div>
+                            <div style={{fontWeight:700,color:"#ff5252",fontSize:12}}>{a.drawdown}%</div>
+                            <div style={{fontSize:9,color:a.recovered?"#00d4a4":"#ff8c42",marginTop:2}}>
+                              {a.recovered?`↑ ${fmtML(a.recoveryMonth)}`:"Recovering"}
+                            </div>
+                          </div>
+                        ):<span style={{color:"#6b8299"}}>—</span>}
+                      </TD>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>}
+
+      {/* ── MY MF VS MARKET TAB ── */}
+      {subTab==="mymf" && <>
+        {myMFPoints.length < 2 ? (
+          <div className="ax-card" style={{padding:40,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
+            <Wallet size={36} color="#dde4ee"/>
+            <div style={{fontSize:13,fontWeight:600,color:"#3d617e"}}>No MF Data Found</div>
+            <div style={{fontSize:11,color:"#6b8299",maxWidth:300,lineHeight:1.6}}>
+              Add monthly updates with a Mutual Fund value to compare your portfolio against market benchmarks.
+            </div>
+          </div>
+        ) : <>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            {[
+              {label:"Tracking Since", value:fmtML(myMFPoints[0].month), color:"#3d617e"},
+              {label:"Latest MF Value", value:fmt(myMFPoints[myMFPoints.length-1].rawValue), color:"#1a2433"},
+              {label:"Portfolio CAGR", value:(()=>{
+                const months=myMFPoints.length-1;
+                if(months<1) return "—";
+                return `${((Math.pow(myMFPoints[myMFPoints.length-1].rawValue/myMFPoints[0].rawValue,12/months)-1)*100).toFixed(1)}%`;
+              })(), color:rCol((()=>{const m2=myMFPoints.length-1;return m2>0?((Math.pow(myMFPoints[m2].rawValue/myMFPoints[0].rawValue,12/m2)-1)*100).toFixed(1):null;})())},
+              {label:"Data Points", value:`${myMFPoints.length} months`, color:"#6b8299"},
+            ].map(s=>(
+              <div key={s.label} className="ax-card" style={{flex:"1 1 110px",padding:"10px 14px"}}>
+                <div style={{fontSize:9,color:"#6b8299",marginBottom:3}}>{s.label}</div>
+                <div style={{fontSize:14,fontWeight:700,color:s.color}}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="ax-card" style={{padding:"14px 6px 8px"}}>
+            <div style={{fontSize:12,fontWeight:600,marginBottom:2,paddingLeft:10,display:"flex",alignItems:"center",gap:6}}>
+              <TrendingUp size={13} color="#c9a84c"/> Your Portfolio vs Selected Funds (₹100 normalized)
+            </div>
+            <div style={{fontSize:9,color:"#ff8c42",paddingLeft:10,marginBottom:6}}>
+              ⚠ Portfolio includes SIP contributions — comparison shows value growth, not pure NAV appreciation
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={myCompareData} margin={{top:4,right:20,left:-10,bottom:4}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#dde4ee"/>
+                <XAxis dataKey="month" tick={{fontSize:9,fill:"#6b8299"}} tickFormatter={fmtTick} interval="preserveStartEnd"/>
+                <YAxis tick={{fontSize:9,fill:"#6b8299"}} domain={["auto","auto"]}/>
+                <Tooltip
+                  formatter={(v,name)=>[`₹${v}`,name==="myMF"?"My Portfolio":MF_FUNDS.find(f=>f.id===name)?.shortName||name]}
+                  labelFormatter={l=>fmtML(l)} contentStyle={{fontSize:10,background:"#fff",border:"1px solid #dde4ee",borderRadius:6}}/>
+                <Line type="monotone" dataKey="myMF" stroke="#c9a84c" strokeWidth={3} dot={false} strokeDasharray="7 3" name="myMF"/>
+                {activeFunds.map(f=>(
+                  <Line key={f.id} type="monotone" dataKey={f.id} stroke={f.color} dot={false} strokeWidth={1.5} name={f.id}/>
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",paddingLeft:10,paddingTop:6}}>
+              <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10}}>
+                <svg width={20} height={6}><line x1={0} y1={3} x2={20} y2={3} stroke="#c9a84c" strokeWidth={3} strokeDasharray="7 3"/></svg>
+                <span style={{color:"#c9a84c",fontWeight:700}}>My Portfolio</span>
+              </div>
+              {activeFunds.map(f=>(
+                <div key={f.id} style={{display:"flex",alignItems:"center",gap:4,fontSize:10}}>
+                  <div style={{width:14,height:2,background:f.color,borderRadius:1}}/>
+                  <span style={{color:f.color}}>{f.shortName}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="ax-card" style={{padding:0,overflow:"hidden"}}>
+            <div style={{fontWeight:600,fontSize:12,padding:"12px 16px",borderBottom:"1px solid #dde4ee"}}>
+              Portfolio vs Fund CAGR (from {fmtML(myMFPoints[0].month)})
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                <thead><tr><TH>Fund / Portfolio</TH><TH right>CAGR %</TH><TH right>₹100 → ?</TH><TH right>vs Your Portfolio</TH></tr></thead>
+                <tbody>
+                  {(()=>{
+                    const myMonths=myMFPoints.length-1;
+                    const myCagr=myMonths>0?((Math.pow(myMFPoints[myMFPoints.length-1].rawValue/myMFPoints[0].rawValue,12/myMonths)-1)*100):0;
+                    const myFinal=myCompareData.length>0?myCompareData[myCompareData.length-1]?.myMF||100:100;
+                    const rows=[
+                      {id:"myMF",shortName:"My Portfolio",color:"#c9a84c",isMe:true,cagr:myCagr,final:myFinal},
+                      ...activeFunds.map(f=>{
+                        const si=MF_NAV[f.id].findIndex(d=>d.month>=myMFPoints[0].month);
+                        if(si<0)return{id:f.id,shortName:f.shortName,color:f.color,cagr:0,final:100};
+                        const bNav=MF_NAV[f.id][si].nav, lNav=MF_NAV[f.id][MF_NAV[f.id].length-1].nav;
+                        const m2=MF_NAV[f.id].length-1-si;
+                        return{id:f.id,shortName:f.shortName,color:f.color,cagr:m2>0?((Math.pow(lNav/bNav,12/m2)-1)*100):0,final:Math.round(lNav/bNav*100)};
+                      }),
+                    ].sort((a,b)=>b.cagr-a.cagr);
+                    return rows.map((r,i)=>(
+                      <tr key={r.id} style={{borderTop:"1px solid #dde4ee",background:r.isMe?"rgba(201,168,76,.05)":i%2===0?"#fff":"#fafbfc"}}>
+                        <TD><div style={{display:"flex",alignItems:"center",gap:6}}>
+                          {r.isMe
+                            ?<span style={{width:16,height:16,borderRadius:4,background:"rgba(201,168,76,.2)",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Star size={9} color="#c9a84c"/></span>
+                            :<span style={{width:8,height:8,borderRadius:"50%",background:r.color,flexShrink:0}}/>
+                          }
+                          <span style={{fontWeight:r.isMe?700:600,color:r.isMe?"#c9a84c":"#1a2433"}}>{r.shortName}</span>
+                          {r.isMe&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:6,background:"rgba(201,168,76,.15)",color:"#c9a84c"}}>You</span>}
+                        </div></TD>
+                        <TD right style={{fontWeight:700,color:rCol(r.cagr.toFixed(1)),fontSize:12}}>{r.cagr.toFixed(1)}%</TD>
+                        <TD right style={{fontWeight:600,color:"#3d617e"}}>₹{r.final}</TD>
+                        <TD right>
+                          {r.isMe?<span style={{fontSize:9,color:"#6b8299"}}>baseline</span>
+                            :(()=>{const d=r.cagr-myCagr;return<span style={{fontWeight:600,color:d>0?"#ff5252":"#00d4a4",fontSize:11}}>{d>0?"▲":"▼"} {Math.abs(d).toFixed(1)}%</span>})()
+                          }
+                        </TD>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>}
+      </>}
+    </div>
+  );
+}
+
 // ── CSS ───────────────────────────────────────────────────────────────────────
 function useStyles() {
   useEffect(() => {
@@ -310,6 +2373,7 @@ function useStyles() {
       .drop-zone:hover{border-color:#c9a84c}
       .risk-btn{flex:1;min-width:140px;padding:14px 12px;border-radius:10px;cursor:pointer;text-align:left;transition:all .2s;font-family:'Sora',sans-serif}
       .toggle-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#f8fafc;border:1px solid #dde4ee;border-radius:9px;cursor:pointer;transition:border-color .15s;user-select:none}
+      @keyframes mf-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
       .toggle-row:hover{border-color:#c0cdd9}
       .toggle-track{width:32px;height:18px;border-radius:9px;background:#dde4ee;position:relative;transition:background .2s;flex-shrink:0}
       .toggle-track.on{background:#c9a84c}
@@ -606,7 +2670,7 @@ function GoalCard({ goal, prob, computing, expanded, onToggle, onChange, onDelet
 }
 
 // ── AppHeader ─────────────────────────────────────────────────────────────────
-function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings, onGoalSave }) {
+function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings, onGoalSave, appMode="intermediate", onModeChange }) {
   const [editing, setEditing] = useState(false);
   const [input, setInput]     = useState("");
   const inputRef = useRef(null);
@@ -619,17 +2683,21 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings, o
   };
   const onKey = e => { if(e.key==="Enter") commit(); if(e.key==="Escape") setEditing(false); };
 
-  const tabs = [
-    {id:"dashboard",label:"Dashboard",icon:<BarChart3 size={12}/>},
-    {id:"goals",    label:"Goals",    icon:<Target size={12}/>},
-    {id:"fiplan",   label:"FI Plan",  icon:<TrendingUp size={12}/>},
-    {id:"insurance",label:"Insurance",icon:<Shield size={12}/>},
-    {id:"profile",  label:"Profile",  icon:<User size={12}/>},
-    {id:"update",   label:"Monthly",  icon:<Plus size={12}/>},
-    {id:"advisor",  label:"AI Advisor",icon:<Brain size={12}/>},
-    {id:"history",  label:"History",  icon:<History size={12}/>},
-    {id:"database", label:"Database", icon:<Database size={12}/>},
+  const ALL_TABS = [
+    {id:"dashboard", label:"Dashboard",  icon:<BarChart3 size={12}/>,  modes:["beginner","intermediate","pro"]},
+    {id:"goals",     label:"Goals",      icon:<Target size={12}/>,     modes:["beginner","intermediate","pro"]},
+    {id:"mfcompare", label:"MF Compare", icon:<Activity size={12}/>,   modes:["beginner","intermediate","pro"]},
+    {id:"advisor",   label:"AI Advisor", icon:<Brain size={12}/>,      modes:["beginner","intermediate","pro"]},
+    {id:"update",    label:"Monthly",    icon:<Plus size={12}/>,       modes:["beginner","intermediate","pro"]},
+    {id:"profile",   label:"Profile",    icon:<User size={12}/>,       modes:["beginner","intermediate","pro"]},
+    {id:"fiplan",    label:"FI Plan",    icon:<TrendingUp size={12}/>, modes:["intermediate","pro"]},
+    {id:"insurance", label:"Insurance",  icon:<Shield size={12}/>,     modes:["intermediate","pro"]},
+    {id:"benchmark", label:"Benchmark",  icon:<BarChart3 size={12}/>,  modes:["intermediate","pro"]},
+    {id:"history",   label:"History",    icon:<History size={12}/>,    modes:["intermediate","pro"]},
+    {id:"database",  label:"Database",   icon:<Database size={12}/>,   modes:["intermediate","pro"]},
+    {id:"risklab",   label:"Risk Lab",   icon:<Sigma size={12}/>,      modes:["pro"]},
   ];
+  const tabs = ALL_TABS.filter(t=>t.modes.includes(appMode));
   const fh=n=>{if(!n)return"₹0";const a=Math.abs(n),s=n<0?"-":"";return a>=1e7?`${s}₹${(a/1e7).toFixed(a%1e7===0?0:2)}Cr`:a>=1e5?`${s}₹${(a/1e5).toFixed(1)}L`:`${s}₹${Math.round(a).toLocaleString("en-IN")}`;}
   return (
     <>
@@ -664,6 +2732,18 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings, o
               <span className="ax-dim">{metrics.progress.toFixed(1)}%</span>
             </div>
           )}
+          {/* Mode switcher */}
+          <div style={{display:"flex",gap:1,padding:"2px 3px",background:"#f0f4fa",borderRadius:8,flexShrink:0}}>
+            {APP_MODES.map(m=>(
+              <button key={m.id} onClick={()=>onModeChange?.(m.id)} style={{
+                padding:"3px 8px",fontSize:9,borderRadius:6,border:"none",cursor:"pointer",fontFamily:"inherit",
+                fontWeight:appMode===m.id?700:400,
+                background:appMode===m.id?m.color:"transparent",
+                color:appMode===m.id?"#fff":"#6b8299",
+                transition:"all .15s",whiteSpace:"nowrap",
+              }} title={m.desc}>{m.label}</button>
+            ))}
+          </div>
           <button className="ax-btn" style={{padding:"6px 8px",flexShrink:0}} onClick={onSettings} title="Settings & Reset">
             <Settings size={13}/>
           </button>
@@ -680,6 +2760,16 @@ function AppHeader({ metrics, onTab, tab, profileName, goalAmount, onSettings, o
 export default function App() {
   useStyles();
   const [tab, setTab]           = useState("dashboard");
+  const [appMode, setAppMode]   = useState("intermediate");
+  const changeMode = async m => {
+    setAppMode(m);
+    await persist("apex-mode", m);
+    // Reset to dashboard if current tab is not available in new mode
+    const modeTabs = ["dashboard","goals","mfcompare","advisor","update","profile",
+      ...(m==="beginner"?[]:(["fiplan","insurance","benchmark","history","database"])),
+      ...(m==="pro"?["risklab"]:[])];
+    setTab(t => modeTabs.includes(t) ? t : "dashboard");
+  };
   const [entries, setEntries]   = useState([]);
   const [advice, setAdvice]     = useState([]);
   const [profile, setProfile]   = useState(()=>defaultProfile());
@@ -716,57 +2806,87 @@ export default function App() {
   // ── Boot ────────────────────────────────────────────────────────────────────
   useEffect(()=>{
     (async()=>{
-      const [e,a,p,g,ins,fi,ga,ak]=await Promise.all([load("apex-entries"),load("apex-advice"),load("apex-profile"),load("apex-goals"),load("apex-insurance"),load("apex-fiplan"),load("apex-goal"),load("apex-apikey")]);
-      if(e)setEntries(e); if(a)setAdvice(a); if(p)setProfile(p); if(g)setGoals(g); if(ins)setInsurance(ins); if(fi)setFIPlan(fi); if(ga)setGoalAmount(ga); if(ak)setApiKey(ak);
+      const [e,a,p,g,ins,fi,ga,ak,md]=await Promise.all([load("apex-entries"),load("apex-advice"),load("apex-profile"),load("apex-goals"),load("apex-insurance"),load("apex-fiplan"),load("apex-goal"),load("apex-apikey"),load("apex-mode")]);
+      if(e)setEntries(e); if(a)setAdvice(a); if(p)setProfile(p); if(g)setGoals(g); if(ins)setInsurance(ins); if(fi)setFIPlan(fi); if(ga)setGoalAmount(ga); if(ak)setApiKey(ak); if(md)setAppMode(md);
       setBooting(false);
     })();
   },[]);
 
   // ── Database management ──────────────────────────────────────────────────────
+  // M7: catch network failures in loadDbView
   async function loadDbView() {
-    const [keys, snaps] = await Promise.all([
-      fetch("/api/storage").then(r=>r.json()),
-      fetch("/api/snapshots").then(r=>r.json()),
-    ]);
-    setDbView({ keys, snapshots: snaps });
+    try {
+      const [keys, snaps] = await Promise.all([
+        fetch("/api/storage").then(r=>{ if(!r.ok) throw new Error(`storage ${r.status}`); return r.json(); }),
+        fetch("/api/snapshots").then(r=>{ if(!r.ok) throw new Error(`snapshots ${r.status}`); return r.json(); }),
+      ]);
+      setDbView({ keys, snapshots: snaps });
+    } catch(err) {
+      setDbMsg(`Failed to load: ${err.message}`); setTimeout(()=>setDbMsg(""),4000);
+    }
   }
   useEffect(()=>{ if(tab==="database") loadDbView(); },[tab]);
 
   async function exportDb() { window.open("/api/export","_blank"); }
 
+  // M1: guard JSON.parse from corrupt/wrong files
   async function importDb(e) {
     const file = e.target.files[0]; if(!file) return;
-    const data = JSON.parse(await file.text());
-    await fetch("/api/import",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    try {
+      const data = JSON.parse(await file.text());
+      const res = await fetch("/api/import",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+      if(!res.ok) throw new Error(`Server error ${res.status}`);
+      setDbMsg("Imported!"); setTimeout(()=>setDbMsg(""),3000);
+      await loadDbView();
+    } catch(err) {
+      setDbMsg(`Import failed: ${err.message}`); setTimeout(()=>setDbMsg(""),4000);
+    }
     e.target.value="";
-    setDbMsg("Imported!"); setTimeout(()=>setDbMsg(""),3000);
-    await loadDbView();
   }
 
+  // M2: try/catch on all DB fetch calls
   async function resetDb() {
-    await fetch("/api/storage",{method:"DELETE"});
-    setResetConfirm(false);
-    setDbMsg("Reset complete — reloading…");
-    setTimeout(()=>window.location.reload(),1200);
+    try {
+      await fetch("/api/storage",{method:"DELETE"});
+      setResetConfirm(false);
+      setDbMsg("Reset complete — reloading…");
+      setTimeout(()=>window.location.reload(),1200);
+    } catch(err) {
+      setDbMsg(`Reset failed: ${err.message}`); setTimeout(()=>setDbMsg(""),4000);
+    }
   }
 
   async function createSnapshot() {
-    const label = snapshotLabel.trim() || new Date().toLocaleDateString("en-IN",{month:"short",year:"numeric"});
-    await fetch("/api/snapshots",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label})});
-    setSnapshotLabel("");
-    setDbMsg("Snapshot saved"); setTimeout(()=>setDbMsg(""),3000);
-    await loadDbView();
+    try {
+      const label = snapshotLabel.trim() || new Date().toLocaleDateString("en-IN",{month:"short",year:"numeric"});
+      const res = await fetch("/api/snapshots",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label})});
+      if(!res.ok) throw new Error(`Server error ${res.status}`);
+      setSnapshotLabel("");
+      setDbMsg("Snapshot saved"); setTimeout(()=>setDbMsg(""),3000);
+      await loadDbView();
+    } catch(err) {
+      setDbMsg(`Snapshot failed: ${err.message}`); setTimeout(()=>setDbMsg(""),4000);
+    }
   }
 
   async function restoreSnapshot(id) {
-    await fetch(`/api/snapshots/${id}/restore`,{method:"POST"});
-    setDbMsg("Restored — reloading…");
-    setTimeout(()=>window.location.reload(),1200);
+    try {
+      const res = await fetch(`/api/snapshots/${id}/restore`,{method:"POST"});
+      if(!res.ok) throw new Error(`Server error ${res.status}`);
+      setDbMsg("Restored — reloading…");
+      setTimeout(()=>window.location.reload(),1200);
+    } catch(err) {
+      setDbMsg(`Restore failed: ${err.message}`); setTimeout(()=>setDbMsg(""),4000);
+    }
   }
 
   async function deleteSnapshot(id) {
-    await fetch(`/api/snapshots/${id}`,{method:"DELETE"});
-    await loadDbView();
+    try {
+      await fetch(`/api/snapshots/${id}`,{method:"DELETE"});
+      await loadDbView();
+    } catch(err) {
+      setDbMsg(`Delete failed: ${err.message}`); setTimeout(()=>setDbMsg(""),4000);
+    }
   }
 
   async function deleteKey(key) {
@@ -774,23 +2894,24 @@ export default function App() {
     await loadDbView();
   }
 
-  // ── Monte Carlo — runs whenever goals change ─────────────────────────────────
+  // ── Monte Carlo — one goal per tick so UI stays responsive ──────────────────
   useEffect(()=>{
     if (!goals.length) { setProbs({}); return; }
     setComputing(true);
-    // Defer to next tick so UI updates first
-    const tid = setTimeout(()=>{
-      const res={};
-      goals.forEach(g=>{
-        const yrs=g.targetYear-CUR_YEAR;
-        const inflated=calcInflated(g.targetAmount,g.inflationRate,yrs);
-        const vol=goalVol(g.expectedReturn);
-        res[g.id]=monteCarlo(g.currentCorpus,g.monthlyContrib,inflated,yrs,g.expectedReturn,vol,g.stepUpPct||0);
-      });
-      setProbs(res);
-      setComputing(false);
-    },0);
-    return ()=>clearTimeout(tid);
+    let cancelled = false;
+    const res = {};
+    const runNext = idx => {
+      if (cancelled) return;
+      if (idx >= goals.length) { setProbs(res); setComputing(false); return; }
+      const g = goals[idx];
+      const yrs = g.targetYear - CUR_YEAR;
+      const inflated = calcInflated(g.targetAmount, g.inflationRate, yrs);
+      const vol = goalVol(g.expectedReturn);
+      res[g.id] = monteCarlo(g.currentCorpus, g.monthlyContrib, inflated, yrs, g.expectedReturn, vol, g.stepUpPct||0);
+      setTimeout(()=>runNext(idx+1), 0);
+    };
+    setTimeout(()=>runNext(0), 0);
+    return ()=>{ cancelled=true; };
   },[goals]);
 
   // ── Derived ─────────────────────────────────────────────────────────────────
@@ -856,12 +2977,7 @@ export default function App() {
     setApiKey(key); await persist("apex-apikey", key);
     setApiKeyInput(""); flash("API key saved!");
   };
-  const apiHeaders = () => ({
-    "Content-Type": "application/json",
-    "x-api-key": apiKey,
-    "anthropic-version": "2023-06-01",
-    "anthropic-dangerous-direct-browser-access": "true",
-  });
+  // C2: API key never leaves the server — all Claude calls go through /api/ai proxy
 
   const quickSaveGoal = async val => {
     if (!val || val < 1000) return;
@@ -988,16 +3104,37 @@ Respond EXACTLY:
 
 **💡 BOLD MOVE**
 [One high-impact, risk-calibrated recommendation that accelerates BOTH the ${fmt(goalAmount)} goal AND underfunded sub-goals.]`;
+    // C4/m6: proxy call, check res.ok, use en-IN date, m8: finally
     try {
-      const res=await fetch(CLAUDE_API,{method:"POST",headers:apiHeaders(),body:JSON.stringify({model:MODEL,max_tokens:1200,messages:[{role:"user",content:prompt}]})});
-      const data=await res.json();
-      const content=data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"Analysis unavailable.";
-      const rec={id:Date.now(),date:new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),type,content,netWorthSnapshot:m.netWorth};
-      const updated=[rec,...advice].slice(0,12); setAdvice(updated); await persist("apex-advice",updated);
-    } catch(e){console.error(e);} setAnalyzing(false);
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: prompt }], max_tokens: 1200 }),
+      });
+      const data = await res.json();
+      let content;
+      if (!res.ok) {
+        content = `**⚠ Analysis Error (${res.status})**\n\n${data?.error || "Request failed. Please try again."}\n\n${res.status === 401 ? "Check your Claude API key in Settings (⚙)." : res.status === 429 ? "Rate limit reached — wait a moment and retry." : ""}`;
+      } else {
+        content = data.content?.filter(b=>b.type==="text").map(b=>b.text).join("") || "Analysis unavailable.";
+      }
+      const rec = { id:Date.now(), date:new Date().toLocaleDateString("en-IN",{month:"short",day:"numeric",year:"numeric"}), type, content, netWorthSnapshot:m.netWorth };
+      const updated = [rec,...advice].slice(0,12);
+      setAdvice(updated); await persist("apex-advice", updated);
+    } catch(e) {
+      console.error(e);
+      const rec = { id:Date.now(), date:new Date().toLocaleDateString("en-IN",{month:"short",day:"numeric",year:"numeric"}), type, content:`**⚠ Network Error**\n\n${e.message}`, netWorthSnapshot:0 };
+      setAdvice(prev=>[rec,...prev].slice(0,12));
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
-  const renderAdvice=t=>t.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br/>");
+  // M4: escape HTML first, then apply safe markdown-to-HTML conversion
+  const renderAdvice = t => {
+    const safe = t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return safe.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br/>");
+  };
 
   // ── SETTINGS MODAL ────────────────────────────────────────────────────────────
   const SettingsModal = () => {
@@ -1128,7 +3265,7 @@ Respond EXACTLY:
     if(!entries.length) return(
       <div className="apex">
         {showSettings && <SettingsModal/>}
-        <AppHeader metrics={null} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+        <AppHeader metrics={null} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:360,gap:16}}>
           <Target size={44} color="#dde4ee"/>
           <div style={{color:"#6b8299",fontSize:14,textAlign:"center",maxWidth:300,lineHeight:1.7}}>
@@ -1162,8 +3299,33 @@ Respond EXACTLY:
     return(
       <div className="apex">
         {showSettings && <SettingsModal/>}
-        <AppHeader metrics={m} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+        <AppHeader metrics={m} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:18}}>
+          {/* ── BEGINNER SUITE ── */}
+          {appMode==="beginner"&&<BeginnerHealthCard entries={entries} goals={goals}/>}
+          {appMode==="beginner"&&<BeginnerMarketBeatCard entries={entries}/>}
+          {appMode==="beginner"&&<BeginnerRiskThermometer entries={entries}/>}
+          {appMode==="beginner"&&entries.length>0&&<BeginnerAllocationPie entries={entries}/>}
+          {appMode==="beginner"&&<BeginnerSIPSimulator/>}
+          {/* Mode hint strips */}
+          {appMode==="beginner"&&(
+            <div style={{fontSize:10,color:"#6b8299",padding:"6px 12px",background:"rgba(0,212,164,.06)",borderRadius:8,border:"1px solid rgba(0,212,164,.2)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+              <span style={{color:"#00d4a4",fontWeight:700}}>★ Beginner Mode</span>
+              <span>Plain-language view · Use <strong>MF Compare</strong> to check your funds · Switch to <strong>Intermediate</strong> mode for full analytics</span>
+            </div>
+          )}
+          {appMode==="intermediate"&&(
+            <div style={{fontSize:10,color:"#6b8299",padding:"6px 12px",background:"rgba(201,168,76,.06)",borderRadius:8,border:"1px solid rgba(201,168,76,.2)",display:"flex",alignItems:"center",gap:8}}>
+              <span style={{color:"#c9a84c",fontWeight:700}}>◆ Intermediate Mode</span>
+              <span>Full analytics enabled · Upgrade to <strong>Pro</strong> for VaR, Monte Carlo and Risk Lab</span>
+            </div>
+          )}
+          {appMode==="pro"&&(
+            <div style={{fontSize:10,color:"#6b8299",padding:"6px 12px",background:"rgba(127,119,221,.06)",borderRadius:8,border:"1px solid rgba(127,119,221,.2)",display:"flex",alignItems:"center",gap:8}}>
+              <span style={{color:"#7f77dd",fontWeight:700}}>⬡ Pro / Quant Mode</span>
+              <span>Full quant analytics · VaR, Monte Carlo, Fragility Score in <strong>Risk Lab</strong> · Benchmark tab shows institutional metrics</span>
+            </div>
+          )}
           {/* Profile strip */}
           {(profile.name||profile.age)&&(
             <div className="ax-card" style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
@@ -1272,8 +3434,8 @@ Respond EXACTLY:
             </div>
           )}
 
-          {/* FI Number widget */}
-          {fi && (
+          {/* FI Number widget — Investor & Pro only */}
+          {fi && appMode!=="beginner" && (
             <div>
               <div className="ax-sec"><TrendingUp size={11}/> FI Number (Pattu 30× Framework)</div>
               <div className="ax-card" style={{cursor:"pointer",padding:"14px 18px"}} onClick={()=>setTab("fiplan")}>
@@ -1313,8 +3475,8 @@ Respond EXACTLY:
             </div>
           )}
 
-          {/* Protection score widget */}
-          {(prot.overall > 0 || insurance.creditScore > 0) && (
+          {/* Protection score widget — Investor & Pro only */}
+          {(prot.overall > 0 || insurance.creditScore > 0) && appMode!=="beginner" && (
             <div>
               <div className="ax-sec"><Shield size={11}/> Protection Status</div>
               <div className="ax-card" style={{cursor:"pointer",padding:"14px 18px"}} onClick={()=>setTab("insurance")}>
@@ -1415,7 +3577,7 @@ Respond EXACTLY:
   if(tab==="goals") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
 
         {/* Overview */}
@@ -1542,7 +3704,7 @@ Respond EXACTLY:
     return(
       <div className="apex">
         {showSettings && <SettingsModal/>}
-        <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+        <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
 
           {/* Source attribution */}
@@ -1837,7 +3999,7 @@ Respond EXACTLY:
     return(
       <div className="apex">
         {showSettings && <SettingsModal/>}
-        <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+        <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
 
           {/* Overall protection score */}
@@ -2023,7 +4185,7 @@ Respond EXACTLY:
   if(tab==="profile") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
         <div className="ax-card" style={{display:"flex",alignItems:"center",gap:16,padding:"16px 20px"}}>
           <div className="avatar" style={{width:58,height:58,fontSize:20}}>{initials(profile.name)}</div>
@@ -2115,7 +4277,7 @@ Respond EXACTLY:
   if(tab==="update") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
         <div className="ax-card">
           <div className="ax-sec"><UploadCloud size={11}/> Upload Statement (Optional)</div>
@@ -2186,7 +4348,7 @@ Respond EXACTLY:
   if(tab==="advisor") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
         {(pComplete<60||!goals.length)&&(
           <div style={{background:"rgba(201,168,76,.07)",border:"1px solid rgba(201,168,76,.2)",borderRadius:10,padding:"10px 14px",fontSize:12,color:"#c9a84c",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -2224,7 +4386,7 @@ Respond EXACTLY:
   if(tab==="history") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:12}}>
         {[...entries].reverse().map((e,idx)=>{
           const inv=Object.values(e.investments).reduce((a,b)=>a+b,0),loans=Object.values(e.loans).reduce((a,b)=>a+b,0);
@@ -2252,11 +4414,37 @@ Respond EXACTLY:
     </div>
   );
 
+  // ── MF COMPARE ───────────────────────────────────────────────────────────────
+  if(tab==="mfcompare") return(
+    <div className="apex">
+      {showSettings && <SettingsModal/>}
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
+      <MFErrorBoundary><MFCompareTab entries={entries} mode={appMode}/></MFErrorBoundary>
+    </div>
+  );
+
+  if(tab==="benchmark") return(
+    <div className="apex">
+      {showSettings && <SettingsModal/>}
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
+      <MFErrorBoundary><BenchmarkTab entries={entries} mode={appMode}/></MFErrorBoundary>
+    </div>
+  );
+
+  // ── RISK LAB (Pro) ────────────────────────────────────────────────────────────
+  if(tab==="risklab") return(
+    <div className="apex">
+      {showSettings && <SettingsModal/>}
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
+      <MFErrorBoundary><RiskLabTab entries={entries}/></MFErrorBoundary>
+    </div>
+  );
+
   // ── DATABASE ─────────────────────────────────────────────────────────────────
   if(tab==="database") return(
     <div className="apex">
       {showSettings && <SettingsModal/>}
-      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal}/>
+      <AppHeader metrics={metrics} onTab={setTab} tab={tab} profileName={profile.name} goalAmount={goalAmount} onSettings={()=>setShowSettings(true)} onGoalSave={quickSaveGoal} appMode={appMode} onModeChange={changeMode}/>
       <div style={{padding:18,display:"flex",flexDirection:"column",gap:16}}>
 
         {/* Action bar */}
